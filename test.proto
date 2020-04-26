@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package carvalhorr.proto.test;
+
+option go_package = ".;test_service";
+
+enum Test {
+    Test1 = 0;
+    Test2 = 1;
+}
+
+message SubTypeRequest {
+    string sub = 1;
+}
+
+message Request {
+    string name = 1;
+    Test test1 = 2;
+    SubTypeRequest sub = 3;
+}
+
+message Response {
+    string name = 1;
+}
+
+service TestProtobuf {
+    rpc GetProtoTest(Request) returns (Response);
+}
