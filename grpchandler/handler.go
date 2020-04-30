@@ -9,6 +9,8 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"strings"
 )
 
@@ -21,6 +23,17 @@ type MockService interface {
 
 // MockInterceptor intercepts the gRPC calls for the registered services return canned responses previously loaded through the REST API.
 var MockHandler = func(ctx context.Context, stubsMatcher stub.StubsMatcher, fullMethod string, req interface{}, resp interface{}) (_ interface{}, err error) {
+	/*st, _ := status.New(codes.AlreadyExists, "error").WithDetails(&Response{Name: "a name"})
+	err := st.Err()
+	c := status.Convert(err)
+	d := c.Details()
+	for _, t := range d {
+		x := t.(*Response)
+		fmt.Println(x.Name)
+	}
+	return nil, st.Err()
+	*/
+
 	paramsJson, err := getRequestInJSON(req)
 	if err != nil {
 		logError(fullMethod, paramsJson, err)
@@ -30,7 +43,8 @@ var MockHandler = func(ctx context.Context, stubsMatcher stub.StubsMatcher, full
 	stub := stubsMatcher.Match(ctx, fullMethod, paramsJson)
 	if stub != nil {
 		if stub.Response.Type == "error" {
-			return nil, fmt.Errorf(stub.Response.Error)
+			st := status.New(codes.Code(uint32(stub.Response.Error.Code)), stub.Response.Error.Message)
+			return nil, st.Err()
 		}
 		resp, transformErr := transformStubToResponse(stub, resp)
 		if transformErr != nil {

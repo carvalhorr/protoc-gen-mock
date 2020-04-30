@@ -37,9 +37,30 @@ func (s StubRequest) String() string {
 }
 
 type StubResponse struct {
-	Type    string     `json:"type"`
-	Content JsonString `json:"content"`
-	Error   string     `json:"error"`
+	Type    string         `json:"type"`
+	Content JsonString     `json:"content"`
+	Error   *ErrorResponse `json:"error"`
+}
+
+type ErrorResponse struct {
+	Code    int32         `json:"code"`
+	Message string        `json:"message"`
+	Details *ErrorDetails `json:"details"`
+}
+
+type ErrorDetails struct {
+	Spec   *ErrorDetailsSpec   `json:"spec"`
+	Values []ErrorDetailsValue `json:"values"`
+}
+
+type ErrorDetailsValue struct {
+	SpecOverride ErrorDetailsSpec `json:"specOverride"`
+	Value        JsonString       `json:"value"`
+}
+
+type ErrorDetailsSpec struct {
+	Import string `json:"import"`
+	Type   string `json:"type"`
 }
 
 func (j JsonString) String() string {

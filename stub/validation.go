@@ -109,7 +109,7 @@ func (stub *Stub) IsValid() (isValid bool, errMsgs []string) {
 	if stub.Response.Type == "success" && stub.Response.Content == "" {
 		errMsgs = append(errMsgs, "Response content is mandatory when the response type is 'success'.")
 	}
-	if stub.Response.Type == "error" && stub.Response.Error == "" {
+	if stub.Response.Type == "error" && stub.Response.Error == nil {
 		errMsgs = append(errMsgs, "Response error is mandatory when the response type ir 'error'.")
 	}
 
