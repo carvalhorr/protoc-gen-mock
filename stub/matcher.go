@@ -13,12 +13,16 @@ type StubsMatcher interface {
 }
 
 // Creates new stubs matcher
-func NewStubsMatcher(store StubsStore) StubsMatcher {
-	return &stubsMatcher{StubsStore: store}
+func NewStubsMatcher(store StubsStore, errorEngine CustomErrorEngine) StubsMatcher {
+	return &stubsMatcher{
+		StubsStore:        store,
+		CustomErrorEngine: errorEngine,
+	}
 }
 
 type stubsMatcher struct {
-	StubsStore StubsStore
+	StubsStore        StubsStore
+	CustomErrorEngine CustomErrorEngine
 }
 
 // Returns the Stub in the StubsStore that matches the method and requestJSON provided OR nil if no stub is found

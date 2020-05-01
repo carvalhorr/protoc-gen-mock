@@ -17,7 +17,11 @@ func IsStubValid(stub *Stub, request, response reflect.Type) (isValid bool, erro
 		return valid, errorMessages
 	}
 	reqValid, reqErrorMessages := stub.Request.Content.isJsonValid(request, "request.content")
-	respValid, respErrorMessages := stub.Response.Content.isJsonValid(response, "response.content")
+	respValid := true
+	respErrorMessages := make([]string, 0)
+	if stub.Response.Type == "success" {
+		respValid, respErrorMessages = stub.Response.Content.isJsonValid(response, "response.content")
+	}
 	errorMessages = append(errorMessages, reqErrorMessages...)
 	errorMessages = append(errorMessages, respErrorMessages...)
 	return reqValid && respValid, errorMessages
@@ -27,7 +31,7 @@ func (j JsonString) isJsonValid(t reflect.Type, baseName string) (isValid bool, 
 	jsonResult := new(map[string]interface{})
 	err := json.Unmarshal([]byte(string(j)), jsonResult)
 	if err != nil {
-		return false, []string{"Invalid JSON."}
+		return false, []string{fmt.Sprintf("%s: invalid JSON", baseName)}
 	}
 	return isJsonValid(t, *jsonResult, baseName)
 }
@@ -99,9 +103,6 @@ func (stub *Stub) IsValid() (isValid bool, errMsgs []string) {
 	// Validate response
 	if stub.Response == nil {
 		errMsgs = append(errMsgs, "Response can't be empty.")
-	}
-	if stub.Response.Content == "" {
-		errMsgs = append(errMsgs, "Response content can't be empty.")
 	}
 	if stub.Response.Type != "error" && stub.Response.Type != "success" {
 		errMsgs = append(errMsgs, "Response type can only be either 'error' or 'success'.")

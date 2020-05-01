@@ -7,10 +7,14 @@ import (
 	"strings"
 )
 
-func BootstrapServers(restPort uint, grpcPort uint, servicesRegistersCallback func(stubsStore stub.StubsMatcher) []grpchandler.MockService) {
+func BootstrapServers(tmpPath string, restPort uint, grpcPort uint, servicesRegistersCallback func(stubsStore stub.StubsMatcher) []grpchandler.MockService) {
 	setupLogrus()
 	stubsStore := stub.NewInMemoryStubsStore()
-	stubsMatcher := stub.NewStubsMatcher(stubsStore)
+	errorsEngine, err := stub.NewCustomErrorEngine(tmpPath)
+	if err != nil {
+		panic(err)
+	}
+	stubsMatcher := stub.NewStubsMatcher(stubsStore, errorsEngine)
 	services := servicesRegistersCallback(stubsMatcher)
 	var supportedFullMethodNames = make([]string, 0)
 	for _, service := range services {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"fmt"
+	"github.com/carvalhorr/protoc-gen-mock/util"
 	"io"
 	"io/ioutil"
 	"os"
@@ -13,14 +14,16 @@ import (
 	"strings"
 )
 
-func NewCustomErrorEngine(path string) CustomErrorEngine {
+func NewCustomErrorEngine(path string) (CustomErrorEngine, error) {
+	err := util.CreateDir(path)
 	return &customErrorEngine{
-		BasePath: path,
-	}
+		BasePath:       path,
+		errorTypeCache: make(map[string]customError, 0),
+	}, err
 }
 
 type CustomErrorEngine interface {
-	GetNewInstance(spec ErrorDetailsSpec) (interface{}, error)
+	GetNewInstance(spec *ErrorDetailsSpec) (interface{}, error)
 }
 
 type customError struct {
@@ -33,7 +36,7 @@ type customErrorEngine struct {
 	errorTypeCache map[string]customError
 }
 
-func (e *customErrorEngine) GetNewInstance(spec ErrorDetailsSpec) (interface{}, error) {
+func (e *customErrorEngine) GetNewInstance(spec *ErrorDetailsSpec) (interface{}, error) {
 	if !e.exists(spec) {
 		errorType, err := e.createErrorType(spec)
 		if err != nil {
@@ -41,19 +44,22 @@ func (e *customErrorEngine) GetNewInstance(spec ErrorDetailsSpec) (interface{}, 
 		}
 		e.errorTypeCache[getKey(spec)] = *errorType
 	}
-	return reflect.New(e.errorTypeCache[getKey(spec)].ErrorType).Interface(), nil
+	return reflect.New(e.errorTypeCache[getKey(spec)].ErrorType).Elem().Interface(), nil
 }
 
-func (e *customErrorEngine) exists(spec ErrorDetailsSpec) bool {
+func (e *customErrorEngine) exists(spec *ErrorDetailsSpec) bool {
 	_, exists := e.errorTypeCache[getKey(spec)]
 	return exists
 }
 
-func (e *customErrorEngine) createErrorType(spec ErrorDetailsSpec) (customErr *customError, err error) {
+func (e *customErrorEngine) createErrorType(spec *ErrorDetailsSpec) (customErr *customError, err error) {
 	hash := generateHash(spec)
 	path := e.BasePath + hash
-	generatePlugin(path, spec)
-	compilePlugin(path, spec)
+	genPluginErr := generatePlugin(path, spec)
+	if genPluginErr != nil {
+		fmt.Println(genPluginErr.Error())
+	}
+	compilePlugin(path)
 	errorType, err := loadType(path)
 	if err != nil {
 		return nil, err
@@ -64,7 +70,7 @@ func (e *customErrorEngine) createErrorType(spec ErrorDetailsSpec) (customErr *c
 	}, nil
 }
 
-func generateHash(spec ErrorDetailsSpec) string {
+func generateHash(spec *ErrorDetailsSpec) string {
 	str := spec.Import + spec.Type
 	h := sha1.New()
 	h.Write([]byte(str))
@@ -90,7 +96,11 @@ func loadType(path string) (reflect.Type, error) {
 	return reflect.TypeOf(instance), nil
 }
 
-func generatePlugin(path string, spec ErrorDetailsSpec) error {
+func generatePlugin(path string, spec *ErrorDetailsSpec) error {
+	err := util.CreateDir(path)
+	if err != nil {
+		return err
+	}
 	template := `package main
 
 import (
@@ -107,7 +117,7 @@ func GetType() interface{} {
 
 }
 
-func compilePlugin(path string, spec ErrorDetailsSpec) error {
+func compilePlugin(path string) error {
 	cmd := exec.Command("go", "build", "-trimpath", "-buildmode=plugin", "-o", path+"/plugin.so", path+"/plugin.go")
 	var stderrBuf bytes.Buffer
 	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
@@ -118,6 +128,6 @@ func compilePlugin(path string, spec ErrorDetailsSpec) error {
 	return nil
 }
 
-func getKey(spec ErrorDetailsSpec) string {
+func getKey(spec *ErrorDetailsSpec) string {
 	return spec.Import + "-" + spec.Type
 }
