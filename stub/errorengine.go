@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"plugin"
-	"reflect"
 	"strings"
 )
 
@@ -28,7 +27,7 @@ type CustomErrorEngine interface {
 
 type customError struct {
 	Hash      string
-	ErrorType reflect.Type
+	ErrorType interface{}
 }
 
 type customErrorEngine struct {
@@ -44,7 +43,7 @@ func (e *customErrorEngine) GetNewInstance(spec *ErrorDetailsSpec) (interface{},
 		}
 		e.errorTypeCache[getKey(spec)] = *errorType
 	}
-	return reflect.New(e.errorTypeCache[getKey(spec)].ErrorType).Elem().Interface(), nil
+	return e.errorTypeCache[getKey(spec)].ErrorType, nil
 }
 
 func (e *customErrorEngine) exists(spec *ErrorDetailsSpec) bool {
@@ -78,11 +77,7 @@ func generateHash(spec *ErrorDetailsSpec) string {
 	return fmt.Sprintf("%x", bs)
 }
 
-type CustomErrorPlugin interface {
-	GetType() interface{}
-}
-
-func loadType(path string) (reflect.Type, error) {
+func loadType(path string) (interface{}, error) {
 	p, r := plugin.Open(path + "/plugin.so")
 	if r != nil {
 		return nil, r
@@ -93,7 +88,7 @@ func loadType(path string) (reflect.Type, error) {
 		return nil, err
 	}
 	instance := loader.(func() interface{})()
-	return reflect.TypeOf(instance), nil
+	return instance, nil
 }
 
 func generatePlugin(path string, spec *ErrorDetailsSpec) error {
@@ -122,6 +117,7 @@ func compilePlugin(path string) error {
 	var stderrBuf bytes.Buffer
 	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 	cmd.Run()
+	cmd.Process.Release()
 	if string(stderrBuf.Bytes()) != "" {
 		return fmt.Errorf(string(stderrBuf.Bytes()))
 	}

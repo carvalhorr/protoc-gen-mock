@@ -54,8 +54,8 @@ type ErrorDetails struct {
 }
 
 type ErrorDetailsValue struct {
-	SpecOverride ErrorDetailsSpec `json:"specOverride"`
-	Value        JsonString       `json:"value"`
+	SpecOverride *ErrorDetailsSpec `json:"specOverride"`
+	Value        JsonString        `json:"value"`
 }
 
 type ErrorDetailsSpec struct {
@@ -80,6 +80,9 @@ func (j *JsonString) UnmarshalJSON(data []byte) error {
 
 func (j *JsonString) MarshalJSON() ([]byte, error) {
 	val := string(*j)
+	if val == "" {
+		return []byte("{}"), nil
+	}
 	return []byte(val), nil
 }
 
