@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/carvalhorr/protoc-gen-mock/bootstrap"
+	greetermock "github.com/carvalhorr/protoc-gen-mock/greeter-service"
 	"github.com/carvalhorr/protoc-gen-mock/grpchandler"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
-	testservice "github.com/carvalhorr/protoc-gen-mock/test-service"
 )
 
 func main() {
@@ -13,6 +13,6 @@ func main() {
 
 var MockServicesRegistersCallback = func(stubsMatcher stub.StubsMatcher) []grpchandler.MockService {
 	return []grpchandler.MockService{
-		testservice.NewTestProtobufMockService(stubsMatcher),
+		greetermock.NewGreeterMockService(stubsMatcher),
 	}
 }

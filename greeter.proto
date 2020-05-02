@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package carvalhorr.greeter;
+
+option go_package = ".;greeter_service";
+
+
+service Greeter {
+	rpc Hello(Request) returns (Response) {}
+}
+
+message Request {
+	string name = 1;
+}
+
+message Response {
+	string greeting = 1;
+}
