@@ -7,6 +7,13 @@ import (
 	"strings"
 )
 
+// BootstrapServers starts the gRPC server with the mock services added by serviceregistersCallback.
+// The REST server for the stub API management is also started.
+// Parameters:
+// - tmpPath : temporary path to store temporary files
+// - restPort : the port where the REST server will be started
+// - grpcPort : the port where the gRPC server will be started
+// - servicesRegistrationCallback : a function called when the grpc server is ready so that the mock services can be registered
 func BootstrapServers(tmpPath string, restPort uint, grpcPort uint, servicesRegistersCallback func(stubsStore stub.StubsMatcher) []grpchandler.MockService) {
 	setupLogrus()
 	stubsStore := stub.NewInMemoryStubsStore()
