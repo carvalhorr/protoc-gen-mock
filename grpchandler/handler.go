@@ -1,8 +1,8 @@
 package grpchandler
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
 	"github.com/golang/protobuf/jsonpb"
@@ -97,10 +97,14 @@ func logError(fullMethod, paramsJSON string, err error) {
 }
 
 func getRequestInJSON(req interface{}) (requestJSON string, err error) {
-	data, marshalError := json.Marshal(req)
+	buffer := new(bytes.Buffer)
+	marshaler := &jsonpb.Marshaler{}
+	marshalError := marshaler.Marshal(buffer, req.(proto.Message))
 	if marshalError != nil {
 		return "", fmt.Errorf("could not marshal the request to JSON: %w", marshalError)
 	}
+
+	data := buffer.Bytes()
 
 	requestJSON = string(data)
 	return
