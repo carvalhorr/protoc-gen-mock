@@ -39,11 +39,13 @@ func (m *stubsMatcher) Match(ctx context.Context, fullMethod, requestJson string
 	for _, stub := range stubsForMethod {
 		switch stub.Request.Match {
 		case "exact":
-			if string(stub.Request.Content) == requestJson && matchMetadata(ctx, stub) {
+			if stub.Request.Content.Equals(JsonString(requestJson)) && matchMetadata(ctx, stub) {
 				return stub
 			}
 		case "partial":
-			// not implemented
+			if stub.Request.Content.Matches(JsonString(requestJson)) && matchMetadata(ctx, stub) {
+				return stub
+			}
 		}
 	}
 	return nil
