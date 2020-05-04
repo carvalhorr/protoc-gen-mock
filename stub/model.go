@@ -27,9 +27,9 @@ type Stub struct {
 }
 
 type StubRequest struct {
-	Match    string            `json:"match"`
-	Content  JsonString        `json:"content"`
-	Metadata map[string]string `json:"metadata"`
+	Match    string              `json:"match"`
+	Content  JsonString          `json:"content"`
+	Metadata map[string][]string `json:"metadata"`
 }
 
 func (s StubRequest) String() string {
