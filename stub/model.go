@@ -3,6 +3,7 @@ package stub
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"reflect"
@@ -84,6 +85,46 @@ func (j *JsonString) MarshalJSON() ([]byte, error) {
 		return []byte("{}"), nil
 	}
 	return []byte(val), nil
+}
+
+func (j *JsonString) Matches(other JsonString) bool {
+	jsonMap := new(map[string]interface{})
+	otherJsonMap := new(map[string]interface{})
+	json.Unmarshal([]byte(*j), jsonMap)
+	json.Unmarshal([]byte(other), otherJsonMap)
+	return jsonStringMatches(*jsonMap, *otherJsonMap, false)
+}
+
+func (j *JsonString) Equals(other JsonString) bool {
+	jsonMap := new(map[string]interface{})
+	otherJsonMap := new(map[string]interface{})
+	json.Unmarshal([]byte(*j), jsonMap)
+	json.Unmarshal([]byte(other), otherJsonMap)
+	return jsonStringMatches(*jsonMap, *otherJsonMap, true)
+}
+
+func jsonStringMatches(jsonMap, otherJsonMap map[string]interface{}, mustBeEqual bool) bool {
+	if mustBeEqual && len(jsonMap) != len(otherJsonMap) {
+		return false
+	}
+	for key, value := range jsonMap {
+		otherValue, found := otherJsonMap[key]
+		if !found {
+			return false
+		}
+		valueType := fmt.Sprintf("%T", value)
+		otherValueType := fmt.Sprintf("%T", otherValue)
+		if valueType != otherValueType {
+			return false
+		}
+		if valueType == "map[string]interface {}" {
+			return jsonStringMatches(jsonMap[key].(map[string]interface{}), otherJsonMap[key].(map[string]interface{}), mustBeEqual)
+		}
+		if value != otherValue {
+			return false
+		}
+	}
+	return true
 }
 
 type InvalidStubMessage struct {
