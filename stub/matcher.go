@@ -75,10 +75,9 @@ func matchMetadata(ctx context.Context, stub *Stub) bool {
 
 func getStubMetadata(stub *Stub) (stubMetadata map[string][]string) {
 	stubMetadata = make(map[string][]string, 0)
-	for key, value := range stub.Request.Metadata {
-		parts := strings.Split(value, ",")
-		for _, part := range parts {
-			stubMetadata[key] = append(stubMetadata[key], strings.TrimSpace(part))
+	for key, values := range stub.Request.Metadata {
+		for _, value := range values {
+			stubMetadata[key] = append(stubMetadata[key], strings.TrimSpace(value))
 		}
 	}
 	return
