@@ -156,7 +156,7 @@ func (m mockServicesGenerator) genGetPayloadExamplesFunction(service *protogen.S
 		m.g.P("Request: &", stubPackage.Ident("StubRequest"), " {")
 		m.g.P("Match: \"exact | partial\",")
 		m.g.P("Content: ", stubPackage.Ident("JsonString"), "(", stubPackage.Ident("CreateStubExample"), "(new(", method.Input.GoIdent, "))", "),")
-		m.g.P("Metadata: make(map[string]string, 0),")
+		m.g.P("Metadata: make(map[string][]string, 0),")
 		m.g.P("},")
 		m.g.P("Response: &", stubPackage.Ident("StubResponse"), " {")
 		m.g.P("Type: \"success | error\", ")
