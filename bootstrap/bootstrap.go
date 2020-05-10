@@ -36,7 +36,7 @@ func BootstrapServers(tmpPath string, restPort uint, grpcPort uint, servicesRegi
 	for _, service := range services {
 		validators = append(validators, service.GetStubsValidator())
 	}
-	go StartRESTServer(restPort, CreateRESTControllers(stubsExamples, stubsStore, supportedFullMethodNames, validators))
+	go StartRESTServer(restPort, CreateRESTControllers(stubsExamples, stubsStore, supportedFullMethodNames, validators, services))
 	StarGRPCServer(grpcPort, services)
 }
 

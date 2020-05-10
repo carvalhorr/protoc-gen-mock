@@ -84,6 +84,8 @@ func (m mockServicesGenerator) genService(service *protogen.Service) {
 	m.genMockServiceRegistrationFunction(service)
 	m.genGetSupportedMethodsFunction(service)
 	m.genGetPayloadExamplesFunction(service)
+	m.genGetRequestInstance(service)
+	m.genGetResponseInstance(service)
 	m.genGetStubsValidator(service)
 	m.genIsValid(service)
 	m.genMockServiceDescriptor(service)
@@ -169,6 +171,31 @@ func (m mockServicesGenerator) genGetPayloadExamplesFunction(service *protogen.S
 	m.g.P("")
 }
 
+func (m mockServicesGenerator) genGetRequestInstance(service *protogen.Service) {
+	m.g.P("func (mock *", unexport(m.getMockServiceName(service)), ") GetRequestInstance(methodName string) interface{} {")
+	m.g.P("switch methodName {")
+	for _, method := range service.Methods {
+		m.g.P("case ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ":")
+		m.g.P("return new(", method.Input.GoIdent, ")")
+	}
+	m.g.P("}")
+	m.g.P("return nil")
+	m.g.P("}")
+	m.g.P("")
+}
+
+func (m mockServicesGenerator) genGetResponseInstance(service *protogen.Service) {
+	m.g.P("func (mock *", unexport(m.getMockServiceName(service)), ") GetResponseInstance(methodName string) interface{} {")
+	m.g.P("switch methodName {")
+	for _, method := range service.Methods {
+		m.g.P("case ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ":")
+		m.g.P("return new(", method.Output.GoIdent, ")")
+	}
+	m.g.P("}")
+	m.g.P("return nil")
+	m.g.P("}")
+	m.g.P("")
+}
 func (m mockServicesGenerator) genMockServiceDescriptor(service *protogen.Service) {
 	// Service descriptor.
 	m.g.P("var ", m.getMockServiceDescriptorName(service), " = ", grpcPackage.Ident("ServiceDesc"), " {")
