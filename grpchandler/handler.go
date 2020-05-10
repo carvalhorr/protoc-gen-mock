@@ -1,23 +1,24 @@
 package grpchandler
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	githubproto "github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"strings"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 type MockService interface {
 	Register(s *grpc.Server)
 	GetSupportedMethods() []string
 	GetPayloadExamples() []stub.Stub
+	GetRequestInstance(methodName string) interface{}
+	GetResponseInstance(methodName string) interface{}
 	GetStubsValidator() stub.StubsValidator
 }
 
@@ -63,7 +64,7 @@ func createErrorResponse(stubMatcher stub.StubsMatcher, stubError *stub.ErrorRes
 			log.Errorf("Expansion of error response failed: %s", err.Error())
 			return nil, status.New(codes.Internal, "Expansion of error response failed").Err()
 		}
-		detailsMessages := make([]proto.Message, 0)
+		detailsMessages := make([]githubproto.Message, 0)
 		for _, errDetailValue := range stubError.Details.Values {
 			errorType := baseErrorType
 			if errDetailValue.SpecOverride != nil && errDetailValue.SpecOverride.Import != "" {
@@ -80,7 +81,7 @@ func createErrorResponse(stubMatcher stub.StubsMatcher, stubError *stub.ErrorRes
 				log.Errorf("Expansion of error response failed: %s", err.Error())
 				return nil, status.New(codes.Internal, "Expansion of error response failed").Err()
 			}
-			detailsMessages = append(detailsMessages, detailMessage.(proto.Message))
+			detailsMessages = append(detailsMessages, detailMessage.(githubproto.Message))
 		}
 		st, err = st.WithDetails(detailsMessages...)
 		if err != nil {
@@ -97,23 +98,18 @@ func logError(fullMethod, paramsJSON string, err error) {
 }
 
 func getRequestInJSON(req interface{}) (requestJSON string, err error) {
-	buffer := new(bytes.Buffer)
-	marshaler := &jsonpb.Marshaler{}
-	marshalError := marshaler.Marshal(buffer, req.(proto.Message))
-	if marshalError != nil {
-		return "", fmt.Errorf("could not marshal the request to JSON: %w", marshalError)
+	message := req.(proto.Message)
+	bytes, err := protojson.Marshal(message)
+	if err != nil {
+		return "", fmt.Errorf("could not marshal the request to JSON: %w", err)
 	}
-
-	data := buffer.Bytes()
-
-	requestJSON = string(data)
+	requestJSON = string(bytes)
 	return
 }
 
 func jsonToResponse(jsonString string, returnTypeInstance interface{}) (interface{}, error) {
 	protoMessage := returnTypeInstance.(proto.Message)
-	err := jsonpb.Unmarshal(strings.NewReader(jsonString), protoMessage)
-
+	err := protojson.Unmarshal([]byte(jsonString), protoMessage)
 	if err != nil {
 		return nil, err
 	}

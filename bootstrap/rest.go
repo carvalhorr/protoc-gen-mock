@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"github.com/carvalhorr/protoc-gen-mock/grpchandler"
 	"github.com/carvalhorr/protoc-gen-mock/restcontrollers"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
 	"github.com/gorilla/mux"
@@ -27,7 +28,8 @@ func CreateRESTControllers(
 	stubExamples []stub.Stub,
 	stubsStore stub.StubsStore,
 	supportedMethods []string,
-	validators []stub.StubsValidator) []restcontrollers.RESTController {
+	validators []stub.StubsValidator,
+	services []grpchandler.MockService) []restcontrollers.RESTController {
 	return []restcontrollers.RESTController{
 		restcontrollers.ExamplesController{StubExamples: stubExamples},
 		restcontrollers.StubsController{
@@ -35,6 +37,7 @@ func CreateRESTControllers(
 			SupportedMethods: supportedMethods,
 			StubsValidators:  validators,
 			StubExamples:     stubExamples,
+			Services:         services,
 		},
 	}
 }

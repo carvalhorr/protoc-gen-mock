@@ -3,8 +3,11 @@ package restcontrollers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/carvalhorr/protoc-gen-mock/grpchandler"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"io/ioutil"
 	"net/http"
 )
@@ -21,6 +24,7 @@ type StubsController struct {
 	SupportedMethods []string
 	StubsValidators  []stub.StubsValidator
 	StubExamples     []stub.Stub
+	Services         []grpchandler.MockService
 }
 
 func (c StubsController) GetHandlers() []RESTHandler {
@@ -100,6 +104,13 @@ func (c StubsController) addStubsHandler(writer http.ResponseWriter, request *ht
 		return
 	}
 
+	errCleaning := c.cleanRequestResponse(s)
+	if errCleaning != nil {
+		log.Errorf("Error validating request/ response", errCleaning)
+		writeErrorResponse(writer, http.StatusInternalServerError, "Failed to update stub.")
+		return
+	}
+
 	addErr := c.StubsStore.Add(s)
 	if addErr != nil {
 		log.Errorf("Failed to add stub %s -> %s. Error %s", s.FullMethod, s.Request.String(), addErr.Error())
@@ -107,6 +118,43 @@ func (c StubsController) addStubsHandler(writer http.ResponseWriter, request *ht
 		return
 	}
 	writeSuccessResponse(writer)
+}
+
+func (c StubsController) cleanRequestResponse(s *stub.Stub) error {
+	marshaledRequest, err := cleanJson(s.Request.Content, c.getRequestInstance(s.FullMethod))
+	marhsalledResponse, err := cleanJson(s.Response.Content, c.getResponseInstance(s.FullMethod))
+	if err != nil {
+		return err
+	}
+	s.Request.Content = marshaledRequest
+	s.Response.Content = marhsalledResponse
+	return nil
+}
+
+func (c StubsController) getRequestInstance(methodName string) interface{} {
+	for _, service := range c.Services {
+		instance := service.GetRequestInstance(methodName)
+		if instance != nil {
+			return instance
+		}
+	}
+	return nil
+}
+
+func (c StubsController) getResponseInstance(methodName string) interface{} {
+	for _, service := range c.Services {
+		instance := service.GetResponseInstance(methodName)
+		if instance != nil {
+			return instance
+		}
+	}
+	return nil
+}
+
+func cleanJson(originalJson stub.JsonString, instance interface{}) (stub.JsonString, error) {
+	err := protojson.Unmarshal([]byte(originalJson), instance.(proto.Message))
+	bytes, err := protojson.Marshal(instance.(proto.Message))
+	return stub.JsonString(bytes), err
 }
 
 func (c StubsController) findExampleForMethod(method string) *stub.Stub {

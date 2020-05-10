@@ -3,8 +3,7 @@ package stub
 import (
 	"bytes"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/proto"
 	"reflect"
 	"strings"
 )
@@ -12,14 +11,6 @@ import (
 func CreateStubExample(req proto.Message) string {
 	// TODO make marshal work with child structs
 	return generateJSONForType(reflect.TypeOf(req).Elem(), &bytes.Buffer{}).String()
-	/*
-		marshaler := jsonpb.Marshaler{EmitDefaults: true}
-		strJSON, err := marshaler.MarshalToString(req)
-		if err != nil {
-			return fmt.Sprintf("Error getting JSON: %s", err.Error())
-		}
-		return strJSON
-	*/
 }
 
 func generateJSONForType(t reflect.Type, writer *bytes.Buffer) *bytes.Buffer {
@@ -83,7 +74,7 @@ func generateJSONForType(t reflect.Type, writer *bytes.Buffer) *bytes.Buffer {
 func getEnumValues(enum EnumType) []string {
 	values := make([]string, 0)
 	for i := 0; i < enum.Descriptor().Values().Len(); i++ {
-		val := enum.Descriptor().Values().ByNumber(protoreflect.EnumNumber(i))
+		val := enum.Descriptor().Values().Get(i)
 		values = append(values, string(val.Name()))
 	}
 	return values
