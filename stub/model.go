@@ -127,7 +127,7 @@ func jsonStringMatches(jsonMap, otherJsonMap map[string]interface{}, mustBeEqual
 	return true
 }
 
-type InvalidStubMessage struct {
+type InvalidStubResponse struct {
 	Errors  []string `json:"errors"`
 	Example Stub     `json:"example"`
 }

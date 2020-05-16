@@ -4,7 +4,6 @@ package carvalhorr.greeter;
 
 option go_package = ".;greeter_service";
 
-
 service Greeter {
 	rpc Hello(Request) returns (Response) {}
 }

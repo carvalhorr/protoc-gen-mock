@@ -10,24 +10,17 @@ import (
 // Search and match stubs in the StubsStore
 type StubsMatcher interface {
 	Match(ctx context.Context, fullMethod, requestJson string) *Stub
-	GetErrorEngine() CustomErrorEngine
 }
 
 // Creates new stubs matcher
-func NewStubsMatcher(store StubsStore, errorEngine CustomErrorEngine) StubsMatcher {
+func NewStubsMatcher(store StubsStore) StubsMatcher {
 	return &stubsMatcher{
-		StubsStore:        store,
-		CustomErrorEngine: errorEngine,
+		StubsStore: store,
 	}
 }
 
 type stubsMatcher struct {
-	StubsStore        StubsStore
-	CustomErrorEngine CustomErrorEngine
-}
-
-func (m *stubsMatcher) GetErrorEngine() CustomErrorEngine {
-	return m.CustomErrorEngine
+	StubsStore StubsStore
 }
 
 // Returns the Stub in the StubsStore that matches the method and requestJSON provided OR nil if no stub is found
