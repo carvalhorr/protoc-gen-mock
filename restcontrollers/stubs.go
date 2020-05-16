@@ -20,11 +20,9 @@ const (
 )
 
 type StubsController struct {
-	StubsStore       stub.StubsStore
-	SupportedMethods []string
-	StubsValidators  []stub.StubsValidator
-	StubExamples     []stub.Stub
-	Services         []grpchandler.MockService
+	StubsStore   stub.StubsStore
+	StubExamples []stub.Stub
+	Service      grpchandler.MockService
 }
 
 func (c StubsController) GetHandlers() []RESTHandler {
@@ -124,8 +122,8 @@ func (c StubsController) addStubsHandler(writer http.ResponseWriter, request *ht
 // 1. Make sure the request and response can be marshalled to the respective proto.Messages by unmarshalling it to the respective type
 // 2. Marshal it back to JSON to remove extra spaces or formatting so that we can use this cleaned up JSON for comparison to check if the stub already exists
 func (c StubsController) cleanRequestResponse(s *stub.Stub) error {
-	marshaledRequest, errReqClean := cleanJson(s.Request.Content, c.getRequestInstance(s.FullMethod))
-	marhsalledResponse, errRespClean := cleanJson(s.Response.Content, c.getResponseInstance(s.FullMethod))
+	marshaledRequest, errReqClean := cleanJson(s.Request.Content, c.Service.GetRequestInstance(s.FullMethod))
+	marhsalledResponse, errRespClean := cleanJson(s.Response.Content, c.Service.GetResponseInstance(s.FullMethod))
 	if errReqClean != nil {
 		return errReqClean
 	}
@@ -134,26 +132,6 @@ func (c StubsController) cleanRequestResponse(s *stub.Stub) error {
 	}
 	s.Request.Content = marshaledRequest
 	s.Response.Content = marhsalledResponse
-	return nil
-}
-
-func (c StubsController) getRequestInstance(methodName string) interface{} {
-	for _, service := range c.Services {
-		instance := service.GetRequestInstance(methodName)
-		if instance != nil {
-			return instance
-		}
-	}
-	return nil
-}
-
-func (c StubsController) getResponseInstance(methodName string) interface{} {
-	for _, service := range c.Services {
-		instance := service.GetResponseInstance(methodName)
-		if instance != nil {
-			return instance
-		}
-	}
 	return nil
 }
 
@@ -239,7 +217,7 @@ func (c StubsController) deleteStubsHandler(writer http.ResponseWriter, request 
 }
 
 func (c StubsController) isMethodSupported(method string) bool {
-	for _, supportedMethod := range c.SupportedMethods {
+	for _, supportedMethod := range c.Service.GetSupportedMethods() {
 		if supportedMethod == method {
 			return true
 		}
@@ -256,10 +234,8 @@ func (c StubsController) getStubsFromStore(method string) []*stub.Stub {
 }
 
 func (c StubsController) isStubValid(stub *stub.Stub) (isValid bool, errorMessages []string) {
-	for _, validator := range c.StubsValidators {
-		if isValid, errorMessages := validator.IsValid(stub); !isValid {
-			return isValid, errorMessages
-		}
+	if isValid, errorMessages := c.Service.GetStubsValidator().IsValid(stub); !isValid {
+		return isValid, errorMessages
 	}
 	return true, nil
 }

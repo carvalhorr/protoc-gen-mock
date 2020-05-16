@@ -5,19 +5,9 @@ import (
 	"fmt"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
-
-type MockService interface {
-	Register(s *grpc.Server)
-	GetSupportedMethods() []string
-	GetPayloadExamples() []stub.Stub
-	GetRequestInstance(methodName string) interface{}
-	GetResponseInstance(methodName string) interface{}
-	GetStubsValidator() stub.StubsValidator
-}
 
 // MockInterceptor intercepts the gRPC calls for the registered services return canned responses previously loaded through the REST API.
 var MockHandler = func(ctx context.Context, stubsMatcher stub.StubsMatcher, fullMethod string, req interface{}, resp interface{}) (_ interface{}, err error) {

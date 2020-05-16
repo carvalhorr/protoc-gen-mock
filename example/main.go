@@ -11,8 +11,8 @@ func main() {
 	bootstrap.BootstrapServers("./tmp/", 1068, 10010, MockServicesRegistersCallback)
 }
 
-var MockServicesRegistersCallback = func(stubsMatcher stub.StubsMatcher) []grpchandler.MockService {
-	return []grpchandler.MockService{
+var MockServicesRegistersCallback = func(stubsMatcher stub.StubsMatcher) grpchandler.MockService {
+	return grpchandler.NewCompositeMockService([]grpchandler.MockService{
 		greetermock.NewGreeterMockService(stubsMatcher),
-	}
+	})
 }

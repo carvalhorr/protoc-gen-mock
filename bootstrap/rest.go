@@ -27,17 +27,13 @@ func StartRESTServer(port uint, controllers []restcontrollers.RESTController) {
 func CreateRESTControllers(
 	stubExamples []stub.Stub,
 	stubsStore stub.StubsStore,
-	supportedMethods []string,
-	validators []stub.StubsValidator,
-	services []grpchandler.MockService) []restcontrollers.RESTController {
+	service grpchandler.MockService) []restcontrollers.RESTController {
 	return []restcontrollers.RESTController{
 		restcontrollers.ExamplesController{StubExamples: stubExamples},
 		restcontrollers.StubsController{
-			StubsStore:       stubsStore,
-			SupportedMethods: supportedMethods,
-			StubsValidators:  validators,
-			StubExamples:     stubExamples,
-			Services:         services,
+			StubsStore:   stubsStore,
+			StubExamples: stubExamples,
+			Service:      service,
 		},
 	}
 }

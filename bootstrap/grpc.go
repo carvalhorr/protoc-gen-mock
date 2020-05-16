@@ -19,15 +19,13 @@ var server *grpc.Server
 var listener net.Listener
 
 // Start the server for the previously registered services
-func StarGRPCServer(port uint, services []grpchandler.MockService) {
+func StarGRPCServer(port uint, service grpchandler.MockService) {
 
 	server = grpc.NewServer()
 	grpc_health_v1.RegisterHealthServer(server, health.NewServer())
 	reflection.Register(server)
 
-	for _, service := range services {
-		service.Register(server)
-	}
+	service.Register(server)
 
 	var err error
 	addr := fmt.Sprintf("0.0.0.0:%d", port)
