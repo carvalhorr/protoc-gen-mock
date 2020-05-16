@@ -120,6 +120,7 @@ func (stub *Stub) IsValid() (isValid bool, errMsgs []string) {
 	if stub.Request.Match != "exact" && stub.Request.Match != "partial" {
 		errMsgs = append(errMsgs, "Request matching type can only be either 'exact' or 'partial'.")
 	}
+
 	// Validate response
 	if stub.Response == nil {
 		errMsgs = append(errMsgs, "Response can't be empty.")
@@ -135,4 +136,16 @@ func (stub *Stub) IsValid() (isValid bool, errMsgs []string) {
 	}
 
 	return len(errMsgs) == 0, errMsgs
+}
+
+func (stub *Stub) isValidRequest() (isValid bool, errMsgs []string) {
+	return true, nil
+}
+
+func (stub *Stub) isValidResponse() (isValid bool, errMsgs []string) {
+	return true, nil
+}
+
+func (stub *Stub) isValidForward() (isValid bool, errMsgs []string) {
+	return true, nil
 }

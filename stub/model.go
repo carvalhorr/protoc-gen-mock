@@ -20,14 +20,24 @@ func isEnum(t reflect.Type) bool {
 	return t.Implements(inter)
 }
 
+type StubType string
+
+// TODO Create JSON Marshal/Unmarshal that returns error if it is not mock or proxu
+
 type Stub struct {
 	FullMethod string        `json:"fullMethod"`
-	Request    *StubRequest  `json:"request"`
-	Response   *StubResponse `json:"response"`
+	Type       StubType      `json:"type"`     // mock | proxy - default to mock to maintain backwards compatibility
+	Request    *StubRequest  `json:"request"`  // Always required
+	Response   *StubResponse `json:"response"` // required if type = mock. Ignored otherwise.
+	Forward    *StubForward  `json:"forward"`  // required if type = proxy. Ignored otherwise.
 }
 
+type RequestMatchType string
+
+// TODO Create JSON Marshal/Unmarshal that returns error if it is not exact or partial
+
 type StubRequest struct {
-	Match    string              `json:"match"`
+	Match    RequestMatchType    `json:"match"` // exact | partial
 	Content  JsonString          `json:"content"`
 	Metadata map[string][]string `json:"metadata"`
 }
@@ -41,6 +51,11 @@ type StubResponse struct {
 	Type    string         `json:"type"`
 	Content JsonString     `json:"content"`
 	Error   *ErrorResponse `json:"error"`
+}
+
+type StubForward struct {
+	ServerAddress string `json:"serverAddress"`
+	Record        bool   `json:"record"`
 }
 
 type ErrorResponse struct {
