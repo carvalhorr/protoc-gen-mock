@@ -6,6 +6,8 @@ import (
 	"github.com/carvalhorr/protoc-gen-mock/grpchandler"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"io/ioutil"
@@ -93,27 +95,14 @@ func (c StubsController) addStubsHandler(writer http.ResponseWriter, request *ht
 		return
 	}
 
-	isValid, errorMessages := c.isStubValid(s)
-	if !isValid {
-		invalidStubMessage := stub.InvalidStubResponse{
-			Errors:  errorMessages,
-			Example: *c.findExampleForMethod(s.FullMethod),
-		}
-		writeResponseWithCode(writer, invalidStubMessage, http.StatusBadRequest)
-		return
-	}
-
-	errCleaning := c.cleanRequestResponse(s)
-	if errCleaning != nil {
-		log.Errorf("Error validating request/ response", errCleaning)
-		writeErrorResponse(writer, http.StatusInternalServerError, "Failed to update stub.")
+	if !c.isValid(writer, s) {
 		return
 	}
 
 	addErr := c.StubsStore.Add(s)
 	if addErr != nil {
 		log.Errorf("Failed to add stub %s -> %s. Error %s", s.FullMethod, s.Request.String(), addErr.Error())
-		writeErrorResponse(writer, http.StatusInternalServerError, "Failed to update stub.")
+		writeErrorResponse(writer, http.StatusInternalServerError, "Failed to add stub.")
 		return
 	}
 	writeSuccessResponse(writer)
@@ -151,26 +140,31 @@ func (c StubsController) findExampleForMethod(method string) *stub.Stub {
 }
 
 func (c StubsController) updateStubsHandler(writer http.ResponseWriter, request *http.Request) {
-	stub, err := readStubFromRequestBody(request)
+	s, err := readStubFromRequestBody(request)
 	if err != nil {
 		writeErrorResponse(writer, http.StatusBadRequest, fmt.Sprintf("call to update stub failed with error: %s", err.Error()))
 		return
 	}
-	log.WithFields(log.Fields{"stub": toJSON(stub)}).
+	log.WithFields(log.Fields{"stub": toJSON(s)}).
 		Info("REST: received call to update stub")
 
-	if !c.isMethodSupported(stub.FullMethod) {
-		writeErrorResponse(writer, http.StatusBadRequest, fmt.Sprintf("Method %s is not supported", stub.FullMethod))
+	if !c.isMethodSupported(s.FullMethod) {
+		writeErrorResponse(writer, http.StatusBadRequest, fmt.Sprintf("Method %s is not supported", s.FullMethod))
 		return
 	}
 
-	if !c.StubsStore.Exists(stub) {
+	if !c.StubsStore.Exists(s) {
 		writeErrorResponse(writer, http.StatusNotFound, "Stub not found")
 		return
 	}
-	updateErr := c.StubsStore.Update(stub)
+
+	if !c.isValid(writer, s) {
+		return
+	}
+
+	updateErr := c.StubsStore.Update(s)
 	if updateErr != nil {
-		log.Errorf("Failed to update stub %s -> %s. Error %s", stub.FullMethod, stub.Request.String(), updateErr.Error())
+		log.Errorf("Failed to update stub %s -> %s. Error %s", s.FullMethod, s.Request.String(), updateErr.Error())
 		writeErrorResponse(writer, http.StatusInternalServerError, "Failed to update stub.")
 		return
 	}
@@ -265,4 +259,44 @@ func readStubFromRequestBody(request *http.Request) (*stub.Stub, error) {
 func toJSON(p interface{}) string {
 	str, _ := json.Marshal(p)
 	return string(str)
+}
+
+func (c StubsController) isValid(writer http.ResponseWriter, s *stub.Stub) bool {
+	isValid, errorMessages := c.isStubValid(s)
+	if !isValid {
+		invalidStubMessage := stub.InvalidStubResponse{
+			Errors:  errorMessages,
+			Example: *c.findExampleForMethod(s.FullMethod),
+		}
+		writeResponseWithCode(writer, invalidStubMessage, http.StatusBadRequest)
+		return false
+	}
+
+	errCleaning := c.cleanRequestResponse(s)
+	if errCleaning != nil {
+		log.Errorf("Error validating request / response", errCleaning)
+		writeErrorResponse(writer, http.StatusInternalServerError, "Failed to update stub.")
+		return false
+	}
+
+	instance, createResponseErr := stub.GetResponse(s, string(s.Request.Content), c.Service.GetResponseInstance(s.FullMethod))
+	fmt.Println(instance, createResponseErr)
+	switch s.Response.Type {
+	case "success":
+		if createResponseErr != nil {
+			log.Errorf("Error validating creation of response instance: %s", createResponseErr)
+			writeErrorResponse(writer, http.StatusBadRequest, "Error validating creation of response instance.")
+			return false
+		}
+	case "error":
+		st := status.Convert(createResponseErr)
+		fmt.Println(st.Code(), st.Message(), codes.Code(s.Response.Error.Code), s.Response.Error.Message)
+		if instance != nil || st.Code() != codes.Code(s.Response.Error.Code) || st.Message() != s.Response.Error.Message {
+			log.Errorf("Error validating creation of response instance: %s", createResponseErr)
+			writeErrorResponse(writer, http.StatusBadRequest, "Error validating creation of response instance.")
+			return false
+		}
+	}
+
+	return true
 }
