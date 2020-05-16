@@ -89,18 +89,19 @@ func (c StubsController) addStubsHandler(writer http.ResponseWriter, request *ht
 		writeErrorResponse(writer, http.StatusBadRequest, fmt.Sprintf("Method %s is not supported", s.FullMethod))
 		return
 	}
+
+	if c.StubsStore.Exists(s) {
+		writeErrorResponse(writer, http.StatusConflict, "Stub already exists")
+		return
+	}
+
 	isValid, errorMessages := c.isStubValid(s)
 	if !isValid {
-		invalidStubMessage := stub.InvalidStubMessage{
+		invalidStubMessage := stub.InvalidStubResponse{
 			Errors:  errorMessages,
 			Example: *c.findExampleForMethod(s.FullMethod),
 		}
 		writeResponseWithCode(writer, invalidStubMessage, http.StatusBadRequest)
-		return
-	}
-
-	if c.StubsStore.Exists(s) {
-		writeErrorResponse(writer, http.StatusConflict, "Stub already exists")
 		return
 	}
 
@@ -120,11 +121,16 @@ func (c StubsController) addStubsHandler(writer http.ResponseWriter, request *ht
 	writeSuccessResponse(writer)
 }
 
+// 1. Make sure the request and response can be marshalled to the respective proto.Messages by unmarshalling it to the respective type
+// 2. Marshal it back to JSON to remove extra spaces or formatting so that we can use this cleaned up JSON for comparison to check if the stub already exists
 func (c StubsController) cleanRequestResponse(s *stub.Stub) error {
-	marshaledRequest, err := cleanJson(s.Request.Content, c.getRequestInstance(s.FullMethod))
-	marhsalledResponse, err := cleanJson(s.Response.Content, c.getResponseInstance(s.FullMethod))
-	if err != nil {
-		return err
+	marshaledRequest, errReqClean := cleanJson(s.Request.Content, c.getRequestInstance(s.FullMethod))
+	marhsalledResponse, errRespClean := cleanJson(s.Response.Content, c.getResponseInstance(s.FullMethod))
+	if errReqClean != nil {
+		return errReqClean
+	}
+	if errRespClean != nil {
+		return errRespClean
 	}
 	s.Request.Content = marshaledRequest
 	s.Response.Content = marhsalledResponse

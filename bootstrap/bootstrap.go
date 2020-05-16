@@ -16,12 +16,16 @@ import (
 // - servicesRegistrationCallback : a function called when the grpc server is ready so that the mock services can be registered
 func BootstrapServers(tmpPath string, restPort uint, grpcPort uint, servicesRegistersCallback func(stubsStore stub.StubsMatcher) []grpchandler.MockService) {
 	setupLogrus()
-	stubsStore := stub.NewInMemoryStubsStore()
+
 	errorsEngine, err := stub.NewCustomErrorEngine(tmpPath)
 	if err != nil {
 		panic(err)
 	}
-	stubsMatcher := stub.NewStubsMatcher(stubsStore, errorsEngine)
+	stub.SetErrorEngine(errorsEngine)
+
+	stubsStore := stub.NewInMemoryStubsStore()
+	stubsMatcher := stub.NewStubsMatcher(stubsStore)
+
 	services := servicesRegistersCallback(stubsMatcher)
 	var supportedFullMethodNames = make([]string, 0)
 	for _, service := range services {
