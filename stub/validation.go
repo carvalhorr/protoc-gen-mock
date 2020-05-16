@@ -11,6 +11,26 @@ type StubsValidator interface {
 	IsValid(stub *Stub) (isValid bool, errorMessages []string)
 }
 
+func NewCompositeStubsValidator(validators []StubsValidator) StubsValidator {
+	return compositeStubsValidator{
+		stubsValidators: validators,
+	}
+}
+
+type compositeStubsValidator struct {
+	stubsValidators []StubsValidator
+}
+
+func (c compositeStubsValidator) IsValid(stub *Stub) (isValid bool, errorMessages []string) {
+	for _, validator := range c.stubsValidators {
+		isValid, errorMessages = validator.IsValid(stub)
+		if !isValid {
+			return isValid, errorMessages
+		}
+	}
+	return true, nil
+}
+
 func IsStubValid(stub *Stub, request, response reflect.Type) (isValid bool, errorMessages []string) {
 	valid, errorMessages := stub.IsValid()
 	if !valid {
