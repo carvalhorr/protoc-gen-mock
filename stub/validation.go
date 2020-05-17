@@ -39,7 +39,7 @@ func IsStubValid(stub *Stub, request, response reflect.Type) (isValid bool, erro
 	reqValid, reqErrorMessages := stub.Request.Content.isJsonValid(request, "request.content")
 	respValid := true
 	respErrorMessages := make([]string, 0)
-	if stub.Response.Type == "success" {
+	if stub.Type == "mock" && stub.Response.Type == "success" {
 		respValid, respErrorMessages = stub.Response.Content.isJsonValid(response, "response.content")
 	}
 	errorMessages = append(errorMessages, reqErrorMessages...)
@@ -111,6 +111,29 @@ func (stub *Stub) IsValid() (isValid bool, errMsgs []string) {
 		errMsgs = append(errMsgs, "Method can't be empty.")
 	}
 	// Validate request
+	requestValid, requestErrMsgs := stub.isValidRequest()
+	isValid = isValid && requestValid
+	errMsgs = append(errMsgs, requestErrMsgs...)
+
+	// Response type can be either 'mock' or 'forward'
+	if stub.Type != "mock" && stub.Type != "forward" {
+		errMsgs = append(errMsgs, "Stub type must be either 'mock' or 'forward'")
+	}
+
+	// Validate response
+	responseValid, responseErrMsgs := stub.isValidResponse()
+	isValid = isValid && responseValid
+	errMsgs = append(errMsgs, responseErrMsgs...)
+
+	// Validate forward
+	forwardValid, forwardErrMsgs := stub.isValidForward()
+	isValid = isValid && forwardValid
+	errMsgs = append(errMsgs, forwardErrMsgs...)
+
+	return len(errMsgs) == 0, errMsgs
+}
+
+func (stub *Stub) isValidRequest() (isValid bool, errMsgs []string) {
 	if stub.Request == nil {
 		errMsgs = append(errMsgs, "Request can't be empty.")
 	}
@@ -120,10 +143,21 @@ func (stub *Stub) IsValid() (isValid bool, errMsgs []string) {
 	if stub.Request.Match != "exact" && stub.Request.Match != "partial" {
 		errMsgs = append(errMsgs, "Request matching type can only be either 'exact' or 'partial'.")
 	}
+	return len(errMsgs) == 0, errMsgs
+}
 
-	// Validate response
+func (stub *Stub) isValidResponse() (isValid bool, errMsgs []string) {
+	if stub.Type != "mock" {
+		return true, nil
+	}
+
+	if stub.Forward != nil {
+		errMsgs = append(errMsgs, "Stub must not contain a forward definition if it's type is 'mock'")
+	}
+
 	if stub.Response == nil {
-		errMsgs = append(errMsgs, "Response can't be empty.")
+		errMsgs = append(errMsgs, "Response can't be empty when stub's type is 'mock'.")
+		return false, errMsgs
 	}
 	if stub.Response.Type != "error" && stub.Response.Type != "success" {
 		errMsgs = append(errMsgs, "Response type can only be either 'error' or 'success'.")
@@ -134,18 +168,25 @@ func (stub *Stub) IsValid() (isValid bool, errMsgs []string) {
 	if stub.Response.Type == "error" && stub.Response.Error == nil {
 		errMsgs = append(errMsgs, "Response error is mandatory when the response type ir 'error'.")
 	}
-
 	return len(errMsgs) == 0, errMsgs
 }
 
-func (stub *Stub) isValidRequest() (isValid bool, errMsgs []string) {
-	return true, nil
-}
-
-func (stub *Stub) isValidResponse() (isValid bool, errMsgs []string) {
-	return true, nil
-}
-
 func (stub *Stub) isValidForward() (isValid bool, errMsgs []string) {
-	return true, nil
+	if stub.Type != "forward" {
+		return true, nil
+	}
+
+	if stub.Response != nil {
+		errMsgs = append(errMsgs, "Stub must not contain a response definition if it's type is 'forward'")
+	}
+
+	if stub.Forward == nil {
+		errMsgs = append(errMsgs, "Stub must not contain a forward definition if it's type is 'forward'")
+		return false, errMsgs
+	}
+
+	if stub.Forward.ServerAddress == "" {
+		errMsgs = append(errMsgs, "You must provide a server address for forwarding stub types.")
+	}
+	return len(errMsgs) == 0, errMsgs
 }
