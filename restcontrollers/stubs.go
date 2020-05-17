@@ -90,12 +90,12 @@ func (c StubsController) addStubsHandler(writer http.ResponseWriter, request *ht
 		return
 	}
 
-	if c.StubsStore.Exists(s) {
-		writeErrorResponse(writer, http.StatusConflict, "Stub already exists")
+	if !c.isValid(writer, s) {
 		return
 	}
 
-	if !c.isValid(writer, s) {
+	if c.StubsStore.Exists(s) {
+		writeErrorResponse(writer, http.StatusConflict, "Stub already exists")
 		return
 	}
 
@@ -112,15 +112,17 @@ func (c StubsController) addStubsHandler(writer http.ResponseWriter, request *ht
 // 2. Marshal it back to JSON to remove extra spaces or formatting so that we can use this cleaned up JSON for comparison to check if the stub already exists
 func (c StubsController) cleanRequestResponse(s *stub.Stub) error {
 	marshaledRequest, errReqClean := cleanJson(s.Request.Content, c.Service.GetRequestInstance(s.FullMethod))
-	marhsalledResponse, errRespClean := cleanJson(s.Response.Content, c.Service.GetResponseInstance(s.FullMethod))
 	if errReqClean != nil {
 		return errReqClean
 	}
-	if errRespClean != nil {
-		return errRespClean
-	}
 	s.Request.Content = marshaledRequest
-	s.Response.Content = marhsalledResponse
+	if s.Type == "mock" {
+		marhsalledResponse, errRespClean := cleanJson(s.Response.Content, c.Service.GetResponseInstance(s.FullMethod))
+		if errRespClean != nil {
+			return errRespClean
+		}
+		s.Response.Content = marhsalledResponse
+	}
 	return nil
 }
 
@@ -153,12 +155,12 @@ func (c StubsController) updateStubsHandler(writer http.ResponseWriter, request 
 		return
 	}
 
-	if !c.StubsStore.Exists(s) {
-		writeErrorResponse(writer, http.StatusNotFound, "Stub not found")
+	if !c.isValid(writer, s) {
 		return
 	}
 
-	if !c.isValid(writer, s) {
+	if !c.StubsStore.Exists(s) {
+		writeErrorResponse(writer, http.StatusNotFound, "Stub not found")
 		return
 	}
 
@@ -279,6 +281,9 @@ func (c StubsController) isValid(writer http.ResponseWriter, s *stub.Stub) bool 
 		return false
 	}
 
+	if s.Type != "mock" {
+		return true
+	}
 	instance, createResponseErr := stub.GetResponse(s, string(s.Request.Content), c.Service.GetResponseInstance(s.FullMethod))
 	fmt.Println(instance, createResponseErr)
 	switch s.Response.Type {

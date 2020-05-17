@@ -22,22 +22,27 @@ func isEnum(t reflect.Type) bool {
 
 type StubType string
 
-// TODO Create JSON Marshal/Unmarshal that returns error if it is not mock or proxu
+func (j *StubType) UnmarshalJSON(data []byte) error {
+	var str *string
+	json.Unmarshal(data, &str)
+	// defaults to 'mock' when empty to maintain backwards compatibility
+	if *str == "" {
+		*str = "mock"
+	}
+	*j = StubType(*str)
+	return nil
+}
 
 type Stub struct {
 	FullMethod string        `json:"fullMethod"`
-	Type       StubType      `json:"type"`     // mock | proxy - default to mock to maintain backwards compatibility
+	Type       StubType      `json:"type"`     // mock | forward - default to mock to maintain backwards compatibility
 	Request    *StubRequest  `json:"request"`  // Always required
 	Response   *StubResponse `json:"response"` // required if type = mock. Ignored otherwise.
-	Forward    *StubForward  `json:"forward"`  // required if type = proxy. Ignored otherwise.
+	Forward    *StubForward  `json:"forward"`  // required if type = forward. Ignored otherwise.
 }
 
-type RequestMatchType string
-
-// TODO Create JSON Marshal/Unmarshal that returns error if it is not exact or partial
-
 type StubRequest struct {
-	Match    RequestMatchType    `json:"match"` // exact | partial
+	Match    string              `json:"match"` // exact | partial
 	Content  JsonString          `json:"content"`
 	Metadata map[string][]string `json:"metadata"`
 }
