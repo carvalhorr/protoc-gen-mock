@@ -53,7 +53,7 @@ func (s StubRequest) String() string {
 }
 
 type StubResponse struct {
-	Type    string         `json:"type"`
+	Type    string         `json:"type"` // success | error
 	Content JsonString     `json:"content"`
 	Error   *ErrorResponse `json:"error"`
 }
