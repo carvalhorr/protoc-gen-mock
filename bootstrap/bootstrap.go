@@ -29,6 +29,10 @@ func BootstrapServers(tmpPath string, restPort uint, grpcPort uint, serviceRegis
 	service := serviceRegisterCallback(stubsMatcher)
 	log.Info("Supported methods: ", strings.Join(service.GetSupportedMethods(), "  |  "))
 	stubsExamples := service.GetPayloadExamples()
+
+	grpchandler.SetSupportedMockService(service)
+	grpchandler.SetStubStore(stubsStore)
+
 	go StartRESTServer(restPort, CreateRESTControllers(stubsExamples, stubsStore, service))
 	StarGRPCServer(grpcPort, service)
 }

@@ -1,8 +1,13 @@
 package grpchandler
 
 import (
+	"context"
+	"fmt"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
+	"github.com/stretchr/stew/slice"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type MockService interface {
@@ -11,6 +16,7 @@ type MockService interface {
 	GetPayloadExamples() []stub.Stub
 	GetRequestInstance(methodName string) interface{}
 	GetResponseInstance(methodName string) interface{}
+	ForwardRequest(conn grpc.ClientConnInterface, ctx context.Context, methodName string, req interface{}) (interface{}, error)
 	GetStubsValidator() stub.StubsValidator
 }
 
@@ -72,4 +78,13 @@ func (c compositeMockService) GetStubsValidator() stub.StubsValidator {
 		validators = append(validators, mockService.(stub.StubsValidator))
 	}
 	return stub.NewCompositeStubsValidator(validators)
+}
+
+func (c compositeMockService) ForwardRequest(conn grpc.ClientConnInterface, ctx context.Context, methodName string, req interface{}) (interface{}, error) {
+	for _, service := range c.mockServices {
+		if slice.Contains(service.GetSupportedMethods(), methodName) {
+			return service.ForwardRequest(conn, ctx, methodName, req)
+		}
+	}
+	return nil, status.Error(codes.NotFound, fmt.Sprintf("Method %s is not supported.", methodName))
 }

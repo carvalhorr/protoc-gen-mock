@@ -89,6 +89,7 @@ func (m mockServicesGenerator) genService(service *protogen.Service) {
 	m.genGetResponseInstance(service)
 	m.genGetStubsValidator(service)
 	m.genIsValid(service)
+	m.genForwardRequest(service)
 	m.genMockServiceDescriptor(service)
 	for _, method := range service.Methods {
 		methodHandlerName := m.getMethodHandlerName(service, method)
@@ -156,14 +157,19 @@ func (m mockServicesGenerator) genGetPayloadExamplesFunction(service *protogen.S
 	for _, method := range service.Methods {
 		m.g.P("{")
 		m.g.P("FullMethod: ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ",")
+		m.g.P("Type: ", strconv.Quote("mock | forward"), ",")
 		m.g.P("Request: &", stubPackage.Ident("StubRequest"), " {")
 		m.g.P("Match: \"exact | partial\",")
 		m.g.P("Content: ", stubPackage.Ident("JsonString"), "(", stubPackage.Ident("CreateStubExample"), "(new(", method.Input.GoIdent, "))", "),")
 		m.g.P("Metadata: make(map[string][]string, 0),")
 		m.g.P("},")
 		m.g.P("Response: &", stubPackage.Ident("StubResponse"), " {")
-		m.g.P("Type: \"success | error\", ")
+		m.g.P("Type: ", strconv.Quote("success | error"), ", ")
 		m.g.P("Content: ", stubPackage.Ident("JsonString"), "(", stubPackage.Ident("CreateStubExample"), "(new(", method.Output.GoIdent, "))", "),")
+		m.g.P("},")
+		m.g.P("Forward: &", stubPackage.Ident("StubForward"), " {")
+		m.g.P("ServerAddress: ", strconv.Quote("yourserver:port"), ",")
+		m.g.P("Record: true,")
 		m.g.P("},")
 		m.g.P("},")
 	}
@@ -276,6 +282,23 @@ func (m mockServicesGenerator) genIsValid(service *protogen.Service) {
 	m.g.P("return true, nil")
 	m.g.P("}")
 	m.g.P("}")
+	m.g.P("")
+
+}
+
+func (m mockServicesGenerator) genForwardRequest(service *protogen.Service) {
+
+	m.g.P("func(mock *", unexport(m.getMockServiceName(service)), ") ForwardRequest(conn grpc.ClientConnInterface, ctx context.Context, methodName string, req interface{}) (interface{}, error) {")
+	m.g.P("client := New", service.Desc.Name(), "Client(conn)")
+	m.g.P("switch methodName {")
+	for _, method := range service.Methods {
+		m.g.P("case ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ":")
+		m.g.P("return client.", method.GoName, "(ctx, req.(*", method.Input.GoIdent, "))")
+	}
+	m.g.P("}")
+	m.g.P("return nil, nil")
+	m.g.P("}")
+	m.g.P("")
 
 }
 

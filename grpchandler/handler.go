@@ -21,6 +21,9 @@ var MockHandler = func(ctx context.Context, stubsMatcher stub.StubsMatcher, full
 		log.Infof("NO mock response found for %s --> %s", fullMethod, paramsJson)
 		return nil, fmt.Errorf("no response found")
 	}
+	if s.Type == "forward" {
+		return forwardAndRecord(s, ctx, fullMethod, req, resp)
+	}
 	return stub.GetResponse(s, paramsJson, resp)
 }
 
