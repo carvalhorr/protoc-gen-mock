@@ -117,8 +117,47 @@ func jsonStringMatches(jsonMap, otherJsonMap map[string]interface{}, mustBeEqual
 		if valueType != otherValueType {
 			return false
 		}
-		if valueType == "map[string]interface {}" {
-			return jsonStringMatches(jsonMap[key].(map[string]interface{}), otherJsonMap[key].(map[string]interface{}), mustBeEqual)
+		switch valueType {
+		case "map[string]interface {}": // object
+			if !jsonStringMatches(jsonMap[key].(map[string]interface{}), otherJsonMap[key].(map[string]interface{}), mustBeEqual) {
+				return false
+			}
+		case "[]interface {}": // repeated object
+			// naive implementation of comparison of repeated messages.
+			// TODO investigate a more performant way to compare
+			items := jsonMap[key].([]interface{})
+			otherItems := otherJsonMap[key].([]interface{})
+			if len(items) != len(otherItems) {
+				return false
+			}
+			for _, item := range items {
+				var found = false
+				for _, otherItem := range otherItems {
+					itemType := fmt.Sprintf("%T", item)
+					otherItemType := fmt.Sprintf("%T", otherItem)
+					if itemType != otherItemType {
+						// Not sure if they can be different
+						continue
+					}
+					switch itemType {
+					case "map[string]interface {}":
+						if jsonStringMatches(item.(map[string]interface{}), otherItem.(map[string]interface{}), mustBeEqual) {
+							found = true
+							break
+						}
+					default:
+						if item == otherItem {
+							found = true
+							break
+						}
+					}
+
+				}
+				if !found {
+					return false
+				}
+			}
+			continue
 		}
 		if value != otherValue {
 			return false
