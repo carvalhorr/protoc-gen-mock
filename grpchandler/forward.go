@@ -29,7 +29,7 @@ func forwardAndRecord(s *stub.Stub, ctx context.Context, fullMethod string, req,
 	conn := createConnection(s.Forward)
 	defer conn.Close()
 
-	resp, err = supportedMockService.ForwardRequest(conn, createContext(ctx), fullMethod, req)
+	resp, err = supportedMockService.ForwardRequest(conn, ctx, fullMethod, req)
 	log.Infof("Got forward response %s and error %s", toJson(resp), errToString(err))
 	if s.Forward.Record {
 		log.Infof("Recording is active for stub %s -> %s", fullMethod, toJson(s.Request))
@@ -47,10 +47,6 @@ func createConnection(forward *stub.StubForward) *grpc.ClientConn {
 		log.Errorf("Failed to create connection to %s", forward.ServerAddress)
 	}
 	return conn
-}
-
-func createContext(incomingContext context.Context) context.Context {
-	return context.Background() // TODO implement context
 }
 
 func recordRequestAndResponse(fullMethod string, req, resp interface{}, err error) {

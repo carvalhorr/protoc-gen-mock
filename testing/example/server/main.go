@@ -6,9 +6,7 @@ import (
 	greetermock "github.com/carvalhorr/protoc-gen-mock/greeter-service"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/grpc/status"
 	"net"
 	"os"
 	"os/signal"
@@ -66,6 +64,6 @@ func serv(listener net.Listener) {
 type greeterService struct{}
 
 func (s greeterService) Hello(ctx context.Context, in *greetermock.Request) (*greetermock.Response, error) {
-	//return &greetermock.Response{Greeting: fmt.Sprintf("Hello, %s", in.Name)}, nil
-	return nil, status.Error(codes.FailedPrecondition, "an internal error blah blah")
+	return &greetermock.Response{Greeting: fmt.Sprintf("Hello, %s", in.Name)}, nil
+	// return nil, status.Error(codes.FailedPrecondition, "an internal error blah blah")
 }
