@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	fmtPackage         = protogen.GoImportPath("fmt")
 	contextPackage     = protogen.GoImportPath("context")
 	reflectPackage     = protogen.GoImportPath("reflect")
 	grpcPackage        = protogen.GoImportPath("google.golang.org/grpc")
@@ -251,7 +252,7 @@ func (m mockServicesGenerator) genMockMethodHandler(service *protogen.Service, m
 	}
 	m.g.P("func ", hname, "(srv interface{}, stream ", grpcPackage.Ident("ServerStream"), ") error {")
 	m.g.P("// Mock not implemented for streaming")
-	m.g.P("return fmt.Errorf(\"mock not implemented for streaming\")")
+	m.g.P("return ", fmtPackage.Ident("Errorf"), "(\"mock not implemented for streaming\")")
 	m.g.P("}")
 	m.g.P()
 }
