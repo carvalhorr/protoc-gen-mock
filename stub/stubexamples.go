@@ -10,13 +10,20 @@ import (
 
 func CreateStubExample(req proto.Message) string {
 	// TODO make marshal work with child structs
-	return generateJSONForType(reflect.TypeOf(req).Elem(), &bytes.Buffer{}).String()
+	stack := make(map[string]bool)
+	return generateJSONForType(reflect.TypeOf(req).Elem(), &bytes.Buffer{}, stack).String()
 }
 
-func generateJSONForType(t reflect.Type, writer *bytes.Buffer) *bytes.Buffer {
+func generateJSONForType(t reflect.Type, writer *bytes.Buffer, stack map[string]bool) *bytes.Buffer {
 	if t.Kind() != reflect.Struct || t.NumField() == 0 {
 		return writer
 	}
+	typeName := t.String()
+	if stack[typeName] {
+		writer.WriteString("{}")
+		return writer
+	}
+	stack[typeName] = true
 	writer.WriteString("{")
 	first := true
 	for i := 0; i < t.NumField(); i++ {
@@ -35,22 +42,22 @@ func generateJSONForType(t reflect.Type, writer *bytes.Buffer) *bytes.Buffer {
 		switch t.Field(i).Type.Kind() {
 		case reflect.Ptr:
 			writer.WriteString(fmt.Sprintf("\"%s\": ", json))
-			generateJSONForType(t.Field(i).Type.Elem(), writer)
+			generateJSONForType(t.Field(i).Type.Elem(), writer, stack)
 		case reflect.Struct:
 			writer.WriteString(fmt.Sprintf("\"%s\": ", json))
-			generateJSONForType(t.Field(i).Type, writer)
+			generateJSONForType(t.Field(i).Type, writer, stack)
 		case reflect.String:
 			writer.WriteString(fmt.Sprintf("\"%s\": \"\"", json))
 		case reflect.Array:
 			writer.WriteString(fmt.Sprintf("\"%s\": [ARRAY]", json)) // Should not happen, leaving ARRAY to indicate to the consumer that it may need work
-			generateJSONForType(t.Field(i).Type, writer)
+			generateJSONForType(t.Field(i).Type, writer, stack)
 		case reflect.Slice:
 			writer.WriteString(fmt.Sprintf("\"%s\": [", json))
 			switch t.Field(i).Type.Elem().Kind() {
 			case reflect.Struct:
-				generateJSONForType(t.Field(i).Type.Elem(), writer)
+				generateJSONForType(t.Field(i).Type.Elem(), writer, stack)
 			case reflect.Ptr:
-				generateJSONForType(t.Field(i).Type.Elem().Elem(), writer)
+				generateJSONForType(t.Field(i).Type.Elem().Elem(), writer, stack)
 			}
 			writer.WriteString("]")
 		case reflect.Map:

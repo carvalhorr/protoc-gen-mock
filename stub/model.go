@@ -122,6 +122,7 @@ func jsonStringMatches(jsonMap, otherJsonMap map[string]interface{}, mustBeEqual
 			if !jsonStringMatches(jsonMap[key].(map[string]interface{}), otherJsonMap[key].(map[string]interface{}), mustBeEqual) {
 				return false
 			}
+			continue
 		case "[]interface {}": // repeated object
 			// naive implementation of comparison of repeated messages.
 			// TODO investigate a more performant way to compare
