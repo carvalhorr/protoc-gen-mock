@@ -7,18 +7,19 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
 var supportedMockService MockService
-var stubStore stub.StubsStore
+var recordingsStore stub.StubsStore
 
 func SetSupportedMockService(service MockService) {
 	supportedMockService = service
 }
 
-func SetStubStore(store stub.StubsStore) {
-	stubStore = store
+func SetRecordingsStore(store stub.StubsStore) {
+	recordingsStore = store
 }
 
 func forwardAndRecord(s *stub.Stub, ctx context.Context, fullMethod string, req, resp interface{}) (_ interface{}, err error) {
@@ -33,7 +34,7 @@ func forwardAndRecord(s *stub.Stub, ctx context.Context, fullMethod string, req,
 	log.Infof("Got forward response %s and error %s", toJson(resp), errToString(err))
 	if s.Forward.Record {
 		log.Infof("Recording is active for stub %s -> %s", fullMethod, toJson(s.Request))
-		recordRequestAndResponse(fullMethod, req, resp, err)
+		recordRequestAndResponse(ctx, fullMethod, req, resp, err)
 	}
 	return resp, err
 }
@@ -41,7 +42,7 @@ func forwardAndRecord(s *stub.Stub, ctx context.Context, fullMethod string, req,
 func createConnection(forward *stub.StubForward) *grpc.ClientConn {
 
 	options := make([]grpc.DialOption, 0)
-	options = append(options, grpc.WithInsecure()) // TODO implement security later
+	options = append(options, grpc.WithInsecure()) // TODO deal with security
 	conn, err := grpc.Dial(forward.ServerAddress, options...)
 	if err != nil {
 		log.Errorf("Failed to create connection to %s", forward.ServerAddress)
@@ -49,14 +50,14 @@ func createConnection(forward *stub.StubForward) *grpc.ClientConn {
 	return conn
 }
 
-func recordRequestAndResponse(fullMethod string, req, resp interface{}, err error) {
+func recordRequestAndResponse(ctx context.Context, fullMethod string, req, resp interface{}, err error) {
 	s := &stub.Stub{
 		FullMethod: fullMethod,
 		Type:       "mock",
 		Request: &stub.StubRequest{
 			Match:    "exact",
 			Content:  toJson(req),
-			Metadata: nil, // TODO Record metadata
+			Metadata: getMetadata(ctx),
 		},
 		Response: &stub.StubResponse{
 			Type:    getResponseType(resp, err),
@@ -65,10 +66,18 @@ func recordRequestAndResponse(fullMethod string, req, resp interface{}, err erro
 		},
 		Forward: nil,
 	}
-	addErr := stubStore.Add(s)
+	addErr := recordingsStore.Add(s)
 	if addErr != nil {
 		log.Errorf("Failed to record forwarding result. Error: %s", addErr)
 	}
+}
+
+func getMetadata(ctx context.Context) map[string][]string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil
+	}
+	return md
 }
 
 func getResponseType(resp interface{}, err error) string {

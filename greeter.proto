@@ -10,6 +10,7 @@ service Greeter {
 
 message Request {
 	string name = 1;
+	repeated Request req = 2;
 }
 
 message Response {
