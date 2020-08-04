@@ -5,9 +5,10 @@ import (
 	"sync"
 )
 
-func NewInMemoryStubsStore() StubsStore {
+func NewInMemoryStubsStore(allowRepeats bool) StubsStore {
 	return &inMemoryStubsStore{
-		Stubs: make(map[string]map[string]*Stub, 0),
+		Stubs:         make(map[string]map[string]*Stub, 0),
+		AllowRepeated: allowRepeats,
 	}
 }
 
@@ -34,8 +35,9 @@ type inMemoryStubsStore struct {
 	// /full method name 2 ->
 	//               request 1 -> stub3
 	//               request 2 -> stub4
-	Stubs map[string]map[string]*Stub
-	mutex sync.RWMutex
+	Stubs         map[string]map[string]*Stub
+	AllowRepeated bool
+	mutex         sync.RWMutex
 }
 
 func (s *inMemoryStubsStore) Add(e *Stub) error {
@@ -47,7 +49,7 @@ func (s *inMemoryStubsStore) Add(e *Stub) error {
 		s.Stubs[e.FullMethod] = make(map[string]*Stub, 0)
 	}
 
-	if s.exists(e) {
+	if !s.AllowRepeated && s.exists(e) {
 		return fmt.Errorf("stub already exist: %s -> %s", e.FullMethod, e.Request.String())
 	}
 

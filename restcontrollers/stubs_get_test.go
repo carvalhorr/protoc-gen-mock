@@ -11,26 +11,29 @@ import (
 )
 
 func TestStubsController_getStubsHandler(t *testing.T) {
-	stubsStore := stub.NewInMemoryStubsStore()
+	stubsStore := stub.NewInMemoryStubsStore(false)
 	stubsStore.Add(&stub.Stub{
 		FullMethod: "method1",
-		Request: stub.StubRequest{
+		Request: &stub.StubRequest{
 			Match:   "exact",
 			Content: "request1",
-			Metadata: map[string]interface{}{
-				"key1": "value1",
-				"key2": 2,
+			Metadata: map[string][]string{
+				"key1": []string{"value1"},
+				"key2": []string{"2"},
 			},
 		},
-		Response: stub.StubResponse{
+		Response: &stub.StubResponse{
 			Type:    "sccess",
 			Content: "response1",
-			Error:   "error1",
+			Error: &stub.ErrorResponse{
+				Code:    0,
+				Message: "",
+				Details: nil,
+			},
 		},
 	})
 	ctrl := StubsController{
-		StubsStore:       stubsStore,
-		SupportedMethods: []string{"method1"},
+		StubsStore: stubsStore,
 	}
 	response := httptest.NewRecorder()
 	request := &http.Request{
@@ -45,9 +48,7 @@ func TestStubsController_getStubsHandler(t *testing.T) {
 }
 
 func TestStubsController_getStubsHandler_MethodNotSupportedError(t *testing.T) {
-	ctrl := StubsController{
-		SupportedMethods: []string{"method1"},
-	}
+	ctrl := StubsController{}
 	response := httptest.NewRecorder()
 	request := &http.Request{
 		Method: http.MethodGet,

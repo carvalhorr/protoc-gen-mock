@@ -10,10 +10,9 @@ import (
 )
 
 func TestStubsController_addStubHandler(t *testing.T) {
-	stubsStore := stub.NewInMemoryStubsStore()
+	stubsStore := stub.NewInMemoryStubsStore(false)
 	ctrl := StubsController{
-		StubsStore:       stubsStore,
-		SupportedMethods: []string{"method1"},
+		StubsStore: stubsStore,
 	}
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/stubs", strings.NewReader(`{
@@ -44,10 +43,9 @@ func TestStubsController_addStubHandler(t *testing.T) {
 }
 
 func TestStubsController_addStubHandler_MethodNotSupportedError(t *testing.T) {
-	stubsStore := stub.NewInMemoryStubsStore()
+	stubsStore := stub.NewInMemoryStubsStore(false)
 	ctrl := StubsController{
-		StubsStore:       stubsStore,
-		SupportedMethods: []string{"method1"},
+		StubsStore: stubsStore,
 	}
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/stubs", strings.NewReader(`{

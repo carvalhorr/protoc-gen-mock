@@ -10,22 +10,25 @@ import (
 )
 
 func TestStubsController_deleteStubHandler(t *testing.T) {
-	stubsStore := stub.NewInMemoryStubsStore()
+	stubsStore := stub.NewInMemoryStubsStore(false)
 	stubsStore.Add(&stub.Stub{
 		FullMethod: "method1",
-		Request: stub.StubRequest{
+		Request: &stub.StubRequest{
 			Match:   "exact",
 			Content: "{\"name\":\"Rodrigo\"}",
 		},
-		Response: stub.StubResponse{
+		Response: &stub.StubResponse{
 			Type:    "sccess",
 			Content: "response1",
-			Error:   "error1",
+			Error: &stub.ErrorResponse{
+				Code:    0,
+				Message: "",
+				Details: nil,
+			},
 		},
 	})
 	ctrl := StubsController{
-		StubsStore:       stubsStore,
-		SupportedMethods: []string{"method1"},
+		StubsStore: stubsStore,
 	}
 	response := httptest.NewRecorder()
 	payload := `{
