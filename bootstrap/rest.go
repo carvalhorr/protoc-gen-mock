@@ -32,10 +32,12 @@ func CreateRESTControllers(
 	return []restcontrollers.RESTController{
 		restcontrollers.ExamplesController{StubExamples: stubExamples},
 		restcontrollers.StubsController{
-			StubsStore:      stubsStore,
+			StubsStore:   stubsStore,
+			StubExamples: stubExamples,
+			Service:      service,
+		},
+		restcontrollers.RecordingsController{
 			RecordingsStore: recordingsStore,
-			StubExamples:    stubExamples,
-			Service:         service,
 		},
 	}
 }
