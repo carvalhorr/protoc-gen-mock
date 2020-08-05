@@ -22,10 +22,9 @@ const (
 )
 
 type StubsController struct {
-	StubsStore      stub.StubsStore
-	RecordingsStore stub.StubsStore
-	StubExamples    []stub.Stub
-	Service         grpchandler.MockService
+	StubsStore   stub.StubsStore
+	StubExamples []stub.Stub
+	Service      grpchandler.MockService
 }
 
 func (c StubsController) GetHandlers() []RESTHandler {
