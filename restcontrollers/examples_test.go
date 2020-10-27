@@ -29,15 +29,19 @@ func TestExamplesController_getExamplesHandler(t *testing.T) {
 		StubExamples: []stub.Stub{
 			{
 				FullMethod: "method1",
-				Request: stub.StubRequest{
+				Request: &stub.StubRequest{
 					Match:    "exact",
 					Content:  "request1",
-					Metadata: map[string]interface{}{"key1": "value1", "key2": 2},
+					Metadata: map[string][]string{"key1": []string{"value1"}, "key2": []string{"2"}},
 				},
-				Response: stub.StubResponse{
+				Response: &stub.StubResponse{
 					Type:    "sccess",
 					Content: "response1",
-					Error:   "error1",
+					Error: &stub.ErrorResponse{
+						Code:    0,
+						Message: "erro1",
+						Details: nil,
+					},
 				},
 			},
 		},

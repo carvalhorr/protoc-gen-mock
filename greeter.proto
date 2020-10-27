@@ -11,6 +11,10 @@ service Greeter {
 message Request {
 	string name = 1;
 	repeated Request req = 2;
+	oneof optional {
+		string option1 = 3;
+		string option2 = 4;
+	}
 }
 
 message Response {
