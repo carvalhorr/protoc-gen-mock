@@ -3,8 +3,7 @@ package stub
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
-	"strings"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type StubsValidator interface {
@@ -31,7 +30,7 @@ func (c compositeStubsValidator) IsValid(stub *Stub) (isValid bool, errorMessage
 	return true, nil
 }
 
-func IsStubValid(stub *Stub, request, response reflect.Type) (isValid bool, errorMessages []string) {
+func IsStubValid(stub *Stub, request, response protoreflect.MessageDescriptor) (isValid bool, errorMessages []string) {
 	valid, errorMessages := stub.IsValid()
 	if !valid {
 		return valid, errorMessages
@@ -47,7 +46,7 @@ func IsStubValid(stub *Stub, request, response reflect.Type) (isValid bool, erro
 	return reqValid && respValid, errorMessages
 }
 
-func (j JsonString) isJsonValid(t reflect.Type, baseName string) (isValid bool, errorMessages []string) {
+func (j JsonString) isJsonValid(t protoreflect.MessageDescriptor, baseName string) (isValid bool, errorMessages []string) {
 	jsonResult := new(map[string]interface{})
 	err := json.Unmarshal([]byte(string(j)), jsonResult)
 	if err != nil {
@@ -56,16 +55,16 @@ func (j JsonString) isJsonValid(t reflect.Type, baseName string) (isValid bool, 
 	return isJsonValid(t, *jsonResult, baseName)
 }
 
-func isJsonValid(t reflect.Type, json map[string]interface{}, baseName string) (isValid bool, errorMessages []string) {
+func isJsonValid(t protoreflect.MessageDescriptor, json map[string]interface{}, baseName string) (isValid bool, errorMessages []string) {
 	errorMessages = make([]string, 0)
-	reverseFields := make(map[string]reflect.StructField, 0)
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		jsonTag := field.Tag.Get("json")
-		if jsonTag == "-" || jsonTag == "" {
+	reverseFields := make(map[string]protoreflect.FieldDescriptor, 0)
+	for i := 0; i < t.Fields().Len(); i++ {
+		field := t.Fields().Get(i)
+		if !field.HasJSONName() {
 			continue
 		}
-		jsonTag = strings.ReplaceAll(jsonTag, ",omitempty", "")
+
+		jsonTag := field.JSONName()
 		reverseFields[jsonTag] = field
 	}
 	for jsonName, fieldValue := range json {
@@ -78,28 +77,27 @@ func isJsonValid(t reflect.Type, json map[string]interface{}, baseName string) (
 			continue
 		}
 		switch {
-		case field.Type.Kind() == reflect.String:
+		case field.Kind() == protoreflect.StringKind:
 			switch fieldValue.(type) {
 			case string:
 			default:
 				errorMessages = append(errorMessages, fmt.Sprintf("Field '%s.%s' is expected to be a string.", baseName, jsonName))
 			}
-		case field.Type.Kind() == reflect.Ptr:
-			{
-				_, subTypeErrorMessages := isJsonValid(field.Type.Elem(), fieldValue.(map[string]interface{}), baseName+"."+jsonName)
-				errorMessages = append(errorMessages, subTypeErrorMessages...)
-			}
-		case isEnum(field.Type):
-			enum := reflect.New(field.Type).Interface()
-			values := getEnumValues(enum.(EnumType))
+		case field.Kind() == protoreflect.MessageKind:
+			_, subTypeErrorMessages := isJsonValid(field.Message(), fieldValue.(map[string]interface{}), baseName+"."+jsonName)
+			errorMessages = append(errorMessages, subTypeErrorMessages...)
+		case field.Kind() == protoreflect.EnumKind:
 			found := false
-			for _, value := range values {
+			for i := 0; i < field.Enum().Values().Len(); i++ {
+				value := field.Enum().Values().Get(i)
 				if value == fieldValue {
 					found = true
+					break // TODO make sure break is leaving the for loop
 				}
 			}
 			if !found {
-				errorMessages = append(errorMessages, fmt.Sprintf("Value '%s' is not valid for field '%s.%s'. Possible values are '%s'.", fieldValue, baseName, jsonName, strings.Join(values, ", ")))
+				// TODO implement the correct names
+				errorMessages = append(errorMessages, fmt.Sprintf("Value '%s' is not valid for field '%s.%s'. Possible values are '%s'.", fieldValue, baseName, jsonName, field.Enum().ReservedNames()))
 			}
 		}
 	}

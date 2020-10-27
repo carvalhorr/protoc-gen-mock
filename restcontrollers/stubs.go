@@ -229,8 +229,8 @@ func (c StubsController) getStubsFromStore(method string) []*stub.Stub {
 	return c.StubsStore.GetStubsForMethod(method)
 }
 
-func (c StubsController) isStubValid(stub *stub.Stub) (isValid bool, errorMessages []string) {
-	if isValid, errorMessages := c.Service.GetStubsValidator().IsValid(stub); !isValid {
+func (c StubsController) isStubValid(s *stub.Stub) (isValid bool, errorMessages []string) {
+	if isValid, errorMessages := c.Service.GetStubsValidator().IsValid(s); !isValid {
 		return isValid, errorMessages
 	}
 	return true, nil

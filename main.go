@@ -276,7 +276,9 @@ func (m mockServicesGenerator) genIsValid(service *protogen.Service) {
 	m.g.P("switch s.FullMethod {")
 	for _, method := range service.Methods {
 		m.g.P("case ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ":")
-		m.g.P("return ", stubPackage.Ident("IsStubValid"), "(s, ", reflectPackage.Ident("TypeOf"), "(", method.Input.GoIdent, "{}), ", reflectPackage.Ident("TypeOf"), "(", method.Output.GoIdent, "{}))")
+		m.g.P("req := new(", method.Input.GoIdent, ")")
+		m.g.P("resp := new(", method.Output.GoIdent, ")")
+		m.g.P("return ", stubPackage.Ident("IsStubValid"), "(s, req.ProtoReflect().Descriptor(), resp.ProtoReflect().Descriptor())")
 	}
 	m.g.P("default:")
 	m.g.P("return true, nil")
