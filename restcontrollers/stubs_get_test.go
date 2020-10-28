@@ -11,7 +11,7 @@ import (
 )
 
 func TestStubsController_getStubsHandler(t *testing.T) {
-	stubsStore := stub.NewInMemoryStubsStore(false)
+	stubsStore := stub.NewInMemoryStubsStore()
 	stubsStore.Add(&stub.Stub{
 		FullMethod: "method1",
 		Request: &stub.StubRequest{

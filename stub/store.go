@@ -5,10 +5,17 @@ import (
 	"sync"
 )
 
-func NewInMemoryStubsStore(allowRepeats bool) StubsStore {
+func NewInMemoryStubsStore() StubsStore {
 	return &inMemoryStubsStore{
-		Stubs:         make(map[string]map[string]*Stub, 0),
-		AllowRepeated: allowRepeats,
+		Stubs:         make(map[string]map[string][]*Stub, 0),
+		AllowRepeated: false,
+	}
+}
+
+func NewRecordingsStore() RecordingsStore {
+	return &inMemoryStubsStore{
+		Stubs:         make(map[string]map[string][]*Stub, 0),
+		AllowRepeated: true,
 	}
 }
 
@@ -24,6 +31,11 @@ type StubsStore interface {
 	Exists(e *Stub) bool
 }
 
+type RecordingsStore interface {
+	Add(e *Stub) error
+	GetAllStubs() []*Stub
+}
+
 type inMemoryStubsStore struct {
 	// Stores the stubs registered.
 	// First map's key is a full method name
@@ -35,7 +47,7 @@ type inMemoryStubsStore struct {
 	// /full method name 2 ->
 	//               request 1 -> stub3
 	//               request 2 -> stub4
-	Stubs         map[string]map[string]*Stub
+	Stubs         map[string]map[string][]*Stub
 	AllowRepeated bool
 	mutex         sync.RWMutex
 }
@@ -46,14 +58,14 @@ func (s *inMemoryStubsStore) Add(e *Stub) error {
 
 	_, ok := s.Stubs[e.FullMethod]
 	if !ok {
-		s.Stubs[e.FullMethod] = make(map[string]*Stub, 0)
+		s.Stubs[e.FullMethod] = make(map[string][]*Stub, 0)
 	}
 
 	if !s.AllowRepeated && s.exists(e) {
 		return fmt.Errorf("stub already exist: %s -> %s", e.FullMethod, e.Request.String())
 	}
 
-	s.Stubs[e.FullMethod][e.Request.String()] = e
+	s.Stubs[e.FullMethod][e.Request.String()] = append(s.Stubs[e.FullMethod][e.Request.String()], e)
 
 	return nil
 }
@@ -66,23 +78,28 @@ func (s *inMemoryStubsStore) GetStubsMapForMethod(method string) (stubs map[stri
 }
 
 func (s *inMemoryStubsStore) getStubsMapForMethod(method string) (stubs map[string]*Stub) {
-	return s.Stubs[method]
+	response := make(map[string]*Stub)
+	for req, stubs := range s.Stubs[method] {
+		response[req] = stubs[0]
+	}
+	return response
 }
 
 func (s *inMemoryStubsStore) GetStubsForMethod(method string) []*Stub {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	return s.getStubssForMethod(method)
+	return s.getStubsForMethod(method)
 }
 
-func (s *inMemoryStubsStore) getStubssForMethod(method string) []*Stub {
-	stubs := make([]*Stub, 0)
-	stubsForMethod := s.getStubsMapForMethod(method)
-	for _, e := range stubsForMethod {
-		stubs = append(stubs, e)
+func (s *inMemoryStubsStore) getStubsForMethod(method string) []*Stub {
+	resp := make([]*Stub, 0)
+	for _, stubs := range s.Stubs[method] {
+		for _, e := range stubs {
+			resp = append(resp, e)
+		}
 	}
-	return stubs
+	return resp
 }
 
 func (s *inMemoryStubsStore) GetAllStubs() []*Stub {
@@ -91,7 +108,7 @@ func (s *inMemoryStubsStore) GetAllStubs() []*Stub {
 
 	allStubs := make([]*Stub, 0)
 	for methodName := range s.Stubs {
-		allStubs = append(allStubs, s.getStubssForMethod(methodName)...)
+		allStubs = append(allStubs, s.getStubsForMethod(methodName)...)
 	}
 
 	return allStubs
@@ -105,7 +122,7 @@ func (s *inMemoryStubsStore) Update(e *Stub) error {
 		return fmt.Errorf("stub does not exist: %s -> %s", e.FullMethod, e.Request.String())
 	}
 
-	s.Stubs[e.FullMethod][e.Request.String()] = e
+	s.Stubs[e.FullMethod][e.Request.String()][0] = e
 
 	return nil
 }
@@ -144,7 +161,7 @@ func (s *inMemoryStubsStore) DeleteAllForMethod(method string) {
 }
 
 func (s *inMemoryStubsStore) deleteAllForMethod(method string) {
-	s.Stubs[method] = make(map[string]*Stub)
+	s.Stubs[method] = make(map[string][]*Stub)
 }
 
 func (s *inMemoryStubsStore) DeleteAll() {

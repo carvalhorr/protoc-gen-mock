@@ -7,18 +7,13 @@ import (
 	"strings"
 )
 
-const (
-	allowRepeats      = true
-	doNotAllowRepeats = false
-)
-
-// BootstrapServers starts the gRPC server with the mock services added by serviceregistersCallback.
+// BootstrapServers starts the gRPC server with the mock services added by serviceRegisterCallback.
 // The REST server for the stub API management is also started.
 // Parameters:
 // - tmpPath : temporary path to store temporary files
 // - restPort : the port where the REST server will be started
 // - grpcPort : the port where the gRPC server will be started
-// - servicesRegistrationCallback : a function called when the grpc server is ready so that the mock services can be registered
+// - serviceRegisterCallback : a function called when the grpc server is ready so that the mock services can be registered
 func BootstrapServers(tmpPath string, restPort uint, grpcPort uint, serviceRegisterCallback func(stubsStore stub.StubsMatcher) grpchandler.MockService) {
 	setupLogrus()
 
@@ -28,10 +23,10 @@ func BootstrapServers(tmpPath string, restPort uint, grpcPort uint, serviceRegis
 	}
 	stub.SetErrorEngine(errorsEngine)
 
-	stubsStore := stub.NewInMemoryStubsStore(doNotAllowRepeats)
+	stubsStore := stub.NewInMemoryStubsStore()
 	stubsMatcher := stub.NewStubsMatcher(stubsStore)
 
-	recordingsStore := stub.NewInMemoryStubsStore(allowRepeats)
+	recordingsStore := stub.NewRecordingsStore()
 
 	service := serviceRegisterCallback(stubsMatcher)
 	log.Info("Supported methods: ", strings.Join(service.GetSupportedMethods(), "  |  "))

@@ -10,7 +10,7 @@ import (
 )
 
 func TestStubsController_updateStubHandler(t *testing.T) {
-	stubsStore := stub.NewInMemoryStubsStore(false)
+	stubsStore := stub.NewInMemoryStubsStore()
 	stubsStore.Add(&stub.Stub{
 		FullMethod: "method1",
 		Request: &stub.StubRequest{
@@ -18,7 +18,7 @@ func TestStubsController_updateStubHandler(t *testing.T) {
 			Content: "{\"name\":\"Rodrigo\"}",
 		},
 		Response: &stub.StubResponse{
-			Type:    "sccess",
+			Type:    "success",
 			Content: "response1",
 			Error: &stub.ErrorResponse{
 				Code:    0,

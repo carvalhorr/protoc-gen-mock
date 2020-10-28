@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
+	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/stew/slice"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -14,8 +15,8 @@ type MockService interface {
 	Register(s *grpc.Server)
 	GetSupportedMethods() []string
 	GetPayloadExamples() []stub.Stub
-	GetRequestInstance(methodName string) interface{}
-	GetResponseInstance(methodName string) interface{}
+	GetRequestInstance(methodName string) proto.Message
+	GetResponseInstance(methodName string) proto.Message
 	ForwardRequest(conn grpc.ClientConnInterface, ctx context.Context, methodName string, req interface{}) (interface{}, error)
 	GetStubsValidator() stub.StubsValidator
 }
@@ -52,7 +53,7 @@ func (c compositeMockService) GetPayloadExamples() []stub.Stub {
 	return examples
 }
 
-func (c compositeMockService) GetRequestInstance(methodName string) interface{} {
+func (c compositeMockService) GetRequestInstance(methodName string) proto.Message {
 	for _, mockService := range c.mockServices {
 		instance := mockService.GetRequestInstance(methodName)
 		if instance != nil {
@@ -62,7 +63,7 @@ func (c compositeMockService) GetRequestInstance(methodName string) interface{} 
 	return nil
 }
 
-func (c compositeMockService) GetResponseInstance(methodName string) interface{} {
+func (c compositeMockService) GetResponseInstance(methodName string) proto.Message {
 	for _, mockService := range c.mockServices {
 		instance := mockService.GetResponseInstance(methodName)
 		if instance != nil {

@@ -27,7 +27,7 @@ func StartRESTServer(port uint, controllers []restcontrollers.RESTController) {
 func CreateRESTControllers(
 	stubExamples []stub.Stub,
 	stubsStore stub.StubsStore,
-	recordingsStore stub.StubsStore,
+	recordingsStore stub.RecordingsStore,
 	service grpchandler.MockService) []restcontrollers.RESTController {
 	return []restcontrollers.RESTController{
 		restcontrollers.ExamplesController{StubExamples: stubExamples},
