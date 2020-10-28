@@ -2,23 +2,24 @@ package grpchandler
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 var supportedMockService MockService
-var recordingsStore stub.StubsStore
+var recordingsStore stub.RecordingsStore
 
 func SetSupportedMockService(service MockService) {
 	supportedMockService = service
 }
 
-func SetRecordingsStore(store stub.StubsStore) {
+func SetRecordingsStore(store stub.RecordingsStore) {
 	recordingsStore = store
 }
 
@@ -31,9 +32,9 @@ func forwardAndRecord(s *stub.Stub, ctx context.Context, fullMethod string, req,
 	defer conn.Close()
 
 	resp, err = supportedMockService.ForwardRequest(conn, ctx, fullMethod, req)
-	log.Infof("Got forward response %s and error %s", toJson(resp), errToString(err))
+	log.Infof("Got forward response %s and error %s", toProtoJson(resp), errToString(err))
 	if s.Forward.Record {
-		log.Infof("Recording is active for stub %s -> %s", fullMethod, toJson(s.Request))
+		log.Infof("Recording is active for stub %s -> %s", fullMethod, s.Request.String())
 		recordRequestAndResponse(ctx, fullMethod, req, resp, err)
 	}
 	return resp, err
@@ -56,12 +57,12 @@ func recordRequestAndResponse(ctx context.Context, fullMethod string, req, resp 
 		Type:       "mock",
 		Request: &stub.StubRequest{
 			Match:    "exact",
-			Content:  toJson(req),
+			Content:  toProtoJson(req),
 			Metadata: getMetadata(ctx),
 		},
 		Response: &stub.StubResponse{
 			Type:    getResponseType(resp, err),
-			Content: toJson(resp),
+			Content: toProtoJson(resp),
 			Error:   mapError(err),
 		},
 		Forward: nil,
@@ -87,8 +88,8 @@ func getResponseType(resp interface{}, err error) string {
 	return "success"
 }
 
-func toJson(instance interface{}) stub.JsonString {
-	bytes, err := json.Marshal(instance)
+func toProtoJson(instance interface{}) stub.JsonString {
+	bytes, err := protojson.Marshal(instance.(proto.Message))
 	if err != nil {
 		log.Errorf("Failed to marshal to JSON.")
 	}

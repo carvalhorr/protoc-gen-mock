@@ -7,7 +7,7 @@ import (
 )
 
 type RecordingsController struct {
-	RecordingsStore stub.StubsStore
+	RecordingsStore stub.RecordingsStore
 }
 
 func (c RecordingsController) GetHandlers() []RESTHandler {

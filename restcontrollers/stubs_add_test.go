@@ -10,7 +10,7 @@ import (
 )
 
 func TestStubsController_addStubHandler(t *testing.T) {
-	stubsStore := stub.NewInMemoryStubsStore(false)
+	stubsStore := stub.NewInMemoryStubsStore()
 	ctrl := StubsController{
 		StubsStore: stubsStore,
 	}
@@ -43,7 +43,7 @@ func TestStubsController_addStubHandler(t *testing.T) {
 }
 
 func TestStubsController_addStubHandler_MethodNotSupportedError(t *testing.T) {
-	stubsStore := stub.NewInMemoryStubsStore(false)
+	stubsStore := stub.NewInMemoryStubsStore()
 	ctrl := StubsController{
 		StubsStore: stubsStore,
 	}

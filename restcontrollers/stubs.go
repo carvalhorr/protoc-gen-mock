@@ -117,11 +117,11 @@ func (c StubsController) cleanRequestResponse(s *stub.Stub) error {
 	}
 	s.Request.Content = marshaledRequest
 	if s.Type == "mock" {
-		marhsalledResponse, errRespClean := cleanJson(s.Response.Content, c.Service.GetResponseInstance(s.FullMethod))
+		marshalledResponse, errRespClean := cleanJson(s.Response.Content, c.Service.GetResponseInstance(s.FullMethod))
 		if errRespClean != nil {
 			return errRespClean
 		}
-		s.Response.Content = marhsalledResponse
+		s.Response.Content = marshalledResponse
 	}
 	return nil
 }

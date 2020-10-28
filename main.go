@@ -12,7 +12,7 @@ import (
 const (
 	fmtPackage         = protogen.GoImportPath("fmt")
 	contextPackage     = protogen.GoImportPath("context")
-	reflectPackage     = protogen.GoImportPath("reflect")
+	protoPackage       = protogen.GoImportPath("github.com/golang/protobuf/proto")
 	grpcPackage        = protogen.GoImportPath("google.golang.org/grpc")
 	grpchandlerPackage = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/grpchandler")
 	stubPackage        = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/stub")
@@ -179,7 +179,7 @@ func (m mockServicesGenerator) genGetPayloadExamplesFunction(service *protogen.S
 }
 
 func (m mockServicesGenerator) genGetRequestInstance(service *protogen.Service) {
-	m.g.P("func (mock *", unexport(m.getMockServiceName(service)), ") GetRequestInstance(methodName string) interface{} {")
+	m.g.P("func (mock *", unexport(m.getMockServiceName(service)), ") GetRequestInstance(methodName string) ", protoPackage.Ident("Message"), " {")
 	m.g.P("switch methodName {")
 	for _, method := range service.Methods {
 		m.g.P("case ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ":")
@@ -192,7 +192,7 @@ func (m mockServicesGenerator) genGetRequestInstance(service *protogen.Service) 
 }
 
 func (m mockServicesGenerator) genGetResponseInstance(service *protogen.Service) {
-	m.g.P("func (mock *", unexport(m.getMockServiceName(service)), ") GetResponseInstance(methodName string) interface{} {")
+	m.g.P("func (mock *", unexport(m.getMockServiceName(service)), ") GetResponseInstance(methodName string) ", protoPackage.Ident("Message"), "{")
 	m.g.P("switch methodName {")
 	for _, method := range service.Methods {
 		m.g.P("case ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ":")
