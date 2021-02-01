@@ -39,7 +39,7 @@ func GetResponse(stub *Stub, requestJson string, resp interface{}) (interface{},
 }
 
 func createErrorResponse(errorEngine CustomErrorEngine, stubError *ErrorResponse) (interface{}, error) {
-	st := status.New(codes.Code(uint32(stubError.Code)), stubError.Message)
+	st := status.New(codes.Code(stubError.Code), stubError.Message)
 	if stubError.Details != nil {
 		log.Debugf("Creating instance of base error from spec /%s/%s", stubError.Details.Spec.Import, stubError.Details.Spec.Type)
 		baseErrorType, err := errorEngine.GetNewInstance(stubError.Details.Spec)

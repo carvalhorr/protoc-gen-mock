@@ -64,7 +64,7 @@ type StubForward struct {
 }
 
 type ErrorResponse struct {
-	Code    int32         `json:"code"`
+	Code    uint32        `json:"code"`
 	Message string        `json:"message"`
 	Details *ErrorDetails `json:"details"`
 }
