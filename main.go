@@ -14,8 +14,11 @@ const (
 	contextPackage     = protogen.GoImportPath("context")
 	protoPackage       = protogen.GoImportPath("github.com/golang/protobuf/proto")
 	grpcPackage        = protogen.GoImportPath("google.golang.org/grpc")
-	grpchandlerPackage = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/grpchandler")
+	grpcHandlerPackage = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/grpchandler")
 	stubPackage        = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/stub")
+	remotePackage      = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/remote")
+	codesPackage       = protogen.GoImportPath("google.golang.org/grpc/codes")
+	statusPackage      = protogen.GoImportPath("google.golang.org/grpc/status")
 	deprecationComment = "// Deprecated: Do not use."
 )
 
@@ -90,6 +93,7 @@ func (m mockServicesGenerator) genService(service *protogen.Service) {
 	m.genGetStubsValidator(service)
 	m.genIsValid(service)
 	m.genForwardRequest(service)
+	m.genRemoteClient(service)
 	m.genMockServiceDescriptor(service)
 	for _, method := range service.Methods {
 		methodHandlerName := m.getMethodHandlerName(service, method)
@@ -106,7 +110,7 @@ func (m mockServicesGenerator) genHeader(packageName string) {
 
 func (m mockServicesGenerator) genMockServiceConstructor(service *protogen.Service) {
 	serviceName := m.getMockServiceName(service)
-	m.g.P("func New", serviceName, "(stubsMatcher ", stubPackage.Ident("StubsMatcher"), ") ", grpchandlerPackage.Ident("MockService"), "{")
+	m.g.P("func New", serviceName, "(stubsMatcher ", stubPackage.Ident("StubsMatcher"), ") ", grpcHandlerPackage.Ident("MockService"), "{")
 	m.g.P("return &", unexport(serviceName), "{")
 	m.g.P("StubsMatcher: stubsMatcher,")
 	m.g.P("}")
@@ -144,7 +148,7 @@ func (m mockServicesGenerator) genGetSupportedMethodsFunction(service *protogen.
 	m.g.P("func (mock *", unexport(m.getMockServiceName(service)), ") GetSupportedMethods() []string {")
 	m.g.P("return []string{")
 	for _, method := range service.Methods {
-		m.g.P(strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ",")
+		m.g.P(m.getFullMethodName(service, method), ",")
 	}
 	m.g.P("}")
 	m.g.P("}")
@@ -156,7 +160,7 @@ func (m mockServicesGenerator) genGetPayloadExamplesFunction(service *protogen.S
 	m.g.P("return []", stubPackage.Ident("Stub"), "{")
 	for _, method := range service.Methods {
 		m.g.P("{")
-		m.g.P("FullMethod: ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ",")
+		m.g.P("FullMethod: ", m.getFullMethodName(service, method), ",")
 		m.g.P("Type: ", strconv.Quote("mock | forward"), ",")
 		m.g.P("Request: &", stubPackage.Ident("StubRequest"), " {")
 		m.g.P("Match: \"exact | partial\",")
@@ -182,7 +186,7 @@ func (m mockServicesGenerator) genGetRequestInstance(service *protogen.Service) 
 	m.g.P("func (mock *", unexport(m.getMockServiceName(service)), ") GetRequestInstance(methodName string) ", protoPackage.Ident("Message"), " {")
 	m.g.P("switch methodName {")
 	for _, method := range service.Methods {
-		m.g.P("case ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ":")
+		m.g.P("case ", m.getFullMethodName(service, method), ":")
 		m.g.P("return new(", method.Input.GoIdent, ")")
 	}
 	m.g.P("}")
@@ -195,7 +199,7 @@ func (m mockServicesGenerator) genGetResponseInstance(service *protogen.Service)
 	m.g.P("func (mock *", unexport(m.getMockServiceName(service)), ") GetResponseInstance(methodName string) ", protoPackage.Ident("Message"), "{")
 	m.g.P("switch methodName {")
 	for _, method := range service.Methods {
-		m.g.P("case ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ":")
+		m.g.P("case ", m.getFullMethodName(service, method), ":")
 		m.g.P("return new(", method.Output.GoIdent, ")")
 	}
 	m.g.P("}")
@@ -249,9 +253,9 @@ func (m mockServicesGenerator) genMockMethodHandler(service *protogen.Service, m
 		m.g.P("in := new(", method.Input.GoIdent, ")")
 		m.g.P("if err := dec(in); err != nil { return nil, err }")
 		m.g.P("out := new(", method.Output.GoIdent, ")")
-		m.g.P("fullMethod := ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)))
+		m.g.P("fullMethod := ", m.getFullMethodName(service, method))
 		m.g.P("stubsMatcher := (srv).(*", unexport(m.getMockServiceName(service)), ").StubsMatcher")
-		m.g.P("return ", grpchandlerPackage.Ident("MockHandler"), "(ctx, stubsMatcher, fullMethod, in, out)")
+		m.g.P("return ", grpcHandlerPackage.Ident("MockHandler"), "(ctx, stubsMatcher, fullMethod, in, out)")
 		m.g.P("}")
 		m.g.P()
 		return
@@ -275,7 +279,7 @@ func (m mockServicesGenerator) genIsValid(service *protogen.Service) {
 	m.g.P("func(mock *", unexport(m.getMockServiceName(service)), ") IsValid(s *", stubPackage.Ident("Stub"), ") (isValid bool, errorMessages []string) {")
 	m.g.P("switch s.FullMethod {")
 	for _, method := range service.Methods {
-		m.g.P("case ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ":")
+		m.g.P("case ", m.getFullMethodName(service, method), ":")
 		m.g.P("req := new(", method.Input.GoIdent, ")")
 		m.g.P("resp := new(", method.Output.GoIdent, ")")
 		m.g.P("return ", stubPackage.Ident("IsStubValid"), "(s, req.ProtoReflect().Descriptor(), resp.ProtoReflect().Descriptor())")
@@ -294,7 +298,7 @@ func (m mockServicesGenerator) genForwardRequest(service *protogen.Service) {
 	m.g.P("client := New", service.Desc.Name(), "Client(conn)")
 	m.g.P("switch methodName {")
 	for _, method := range service.Methods {
-		m.g.P("case ", strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName)), ":")
+		m.g.P("case ", m.getFullMethodName(service, method), ":")
 		m.g.P("return client.", method.GoName, "(ctx, req.(*", method.Input.GoIdent, "))")
 	}
 	m.g.P("}")
@@ -304,8 +308,71 @@ func (m mockServicesGenerator) genForwardRequest(service *protogen.Service) {
 
 }
 
+func (m mockServicesGenerator) genRemoteClient(service *protogen.Service) {
+	m.genRemoteMockClient(service)
+	for _, method := range service.Methods {
+		m.genRemoteCalls(service, method)
+	}
+}
+
+func (m mockServicesGenerator) genRemoteCalls(service *protogen.Service, method *protogen.Method) {
+	remoteMockClientName := m.getRemoteMockClientName(service)
+	callName := method.GoName + "Call"
+	methodFullName := m.getFullMethodName(service, method)
+	m.g.P("func (c ", remoteMockClientName, ") On", method.GoName, "(ctx ", contextPackage.Ident("Context"), ", request *", method.Input.GoIdent, ")", callName, "{")
+	m.g.P("return ", callName, "{")
+	m.g.P("ctx: ctx,")
+	m.g.P("req: request,")
+	m.g.P("client: c,")
+	m.g.P("}")
+	m.g.P("}")
+	m.g.P("")
+	m.g.P("type ", callName, " struct {")
+	m.g.P("req *", method.Input.GoIdent)
+	m.g.P("ctx ", contextPackage.Ident("Context"))
+	m.g.P("client ", remoteMockClientName)
+	m.g.P("}")
+	m.g.P("")
+	m.g.P("func (c ", callName, ") Return(response *", method.Output.GoIdent, ") error {")
+	m.g.P("return ", remotePackage.Ident("AddStub"), "(c.client.host, c.client.port, ", methodFullName, ", c.ctx, c.req, response, nil)")
+	m.g.P("}")
+	m.g.P("")
+	m.g.P("func (c ", callName, ") Error(code ", codesPackage.Ident("Code"), ", message string) error {")
+	m.g.P("return ", remotePackage.Ident("AddStub"), "(c.client.host, c.client.port, ", methodFullName, ", c.ctx, c.req, nil, ", statusPackage.Ident("New"), "(code, message))")
+	m.g.P("}")
+
+	m.g.P("")
+}
+
+func (m mockServicesGenerator) genRemoteMockClient(service *protogen.Service) {
+	remoteMockClientName := m.getRemoteMockClientName(service)
+	m.g.P("func New" + remoteMockClientName + "(")
+	m.g.P("host string,")
+	m.g.P("port int,")
+	m.g.P(") " + remoteMockClientName + "{")
+	m.g.P("return " + remoteMockClientName + "{")
+	m.g.P("host: host,")
+	m.g.P("port: port,")
+	m.g.P("}")
+	m.g.P("}")
+	m.g.P("")
+	m.g.P("type ", remoteMockClientName, " struct {")
+	m.g.P("host string")
+	m.g.P("port int")
+	m.g.P("}")
+	m.g.P("")
+}
+
+func (m mockServicesGenerator) getFullMethodName(service *protogen.Service, method *protogen.Method) string {
+	return strconv.Quote(fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.GoName))
+}
+
 func (m mockServicesGenerator) getMockServiceName(service *protogen.Service) string {
 	return service.GoName + "MockService"
+}
+
+func (m mockServicesGenerator) getRemoteMockClientName(service *protogen.Service) string {
+	return service.GoName + "RemoteMockClient"
 }
 
 func (m mockServicesGenerator) getMockServerBaseInterfaceName(service *protogen.Service) string {
