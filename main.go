@@ -344,6 +344,15 @@ func (m mockServicesGenerator) genRemoteCalls(service *protogen.Service, method 
 	m.g.P("")
 }
 
+func (m mockServicesGenerator) genRemoteMockClientClear(service *protogen.Service) {
+	remoteMockClientName := m.getRemoteMockClientName(service)
+	m.g.P("func (c ", remoteMockClientName, ") Clear() error {")
+	// remote.DeleteAllStubs(c.host, c.port)
+	m.g.P("return ", remotePackage.Ident("DeleteAllStubs"), "(c.host, c.port)")
+	m.g.P("}")
+	m.g.P("")
+}
+
 func (m mockServicesGenerator) genRemoteMockClient(service *protogen.Service) {
 	remoteMockClientName := m.getRemoteMockClientName(service)
 	m.g.P("func New" + remoteMockClientName + "(")
@@ -361,6 +370,7 @@ func (m mockServicesGenerator) genRemoteMockClient(service *protogen.Service) {
 	m.g.P("port int")
 	m.g.P("}")
 	m.g.P("")
+	m.genRemoteMockClientClear(service)
 }
 
 func (m mockServicesGenerator) getFullMethodName(service *protogen.Service, method *protogen.Method) string {
