@@ -57,6 +57,26 @@ func AddStub(
 	return nil
 }
 
+func DeleteAllStubs(
+	host string,
+	port int,
+) error {
+	deleteRequest, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://%s:%d/stubs", host, port), bytes.NewReader([]byte{}))
+	if err != nil {
+		return err
+	}
+	resp, err := httpClient.Do(deleteRequest)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == 200 {
+		return nil
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	return fmt.Errorf("error: %s", body)
+}
+
 func getMetadata(ctx context.Context) map[string][]string {
 	md, ok := metadata.FromOutgoingContext(ctx)
 	if !ok {
@@ -64,7 +84,6 @@ func getMetadata(ctx context.Context) map[string][]string {
 	}
 	metas := make(map[string][]string)
 	for key, value := range md {
-		fmt.Println(key, ": ", value)
 		metas[key] = value
 	}
 	return metas
@@ -85,7 +104,6 @@ func toJsonString(msg proto.Message) stub.JsonString {
 	if err != nil {
 		log.Errorf("Failed to marshal to JSON.")
 	}
-	fmt.Println(string(b))
 	return stub.JsonString(b)
 }
 
