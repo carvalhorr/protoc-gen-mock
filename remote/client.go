@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	httputils "github.com/carvalhorr/goutils/http"
 	"github.com/carvalhorr/protoc-gen-mock/stub"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
@@ -39,7 +40,11 @@ func New(
 }
 
 type client struct {
-	HttpClient *http.Client
+	// TODO: Should HttpClient be exported?
+	// The only need would be in case we want allow mocking it outside of this package.
+	// We are sorted for unit testing since we the tests are in the same package (white-box testing)
+	// Is there a need to mock http.Client for integration tests?
+	HttpClient httputils.Client
 	host       string
 	port       int
 }
@@ -95,8 +100,7 @@ func (c *client) DeleteAllStubs() error {
 	if resp.StatusCode == 200 {
 		return nil
 	}
-	body, err := ioutil.ReadAll(resp.Body)
-	return fmt.Errorf("error: %s", body)
+	return fmt.Errorf("error: status %s", resp.Status)
 }
 
 func getMetadata(ctx context.Context) map[string][]string {
