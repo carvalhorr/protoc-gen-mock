@@ -334,11 +334,11 @@ func (m mockServicesGenerator) genRemoteCalls(service *protogen.Service, method 
 	m.g.P("}")
 	m.g.P("")
 	m.g.P("func (c ", callName, ") Return(response *", method.Output.GoIdent, ") error {")
-	m.g.P("return c.client.remoteMockClient.AddStub(c.client.host, c.client.port, ", methodFullName, ", c.ctx, c.req, response, nil)")
+	m.g.P("return c.client.remoteMockClient.AddStub(", methodFullName, ", c.ctx, c.req, response, nil)")
 	m.g.P("}")
 	m.g.P("")
 	m.g.P("func (c ", callName, ") Error(code ", codesPackage.Ident("Code"), ", message string) error {")
-	m.g.P("return c.client.remoteMockClient.AddStub(c.client.host, c.client.port, ", methodFullName, ", c.ctx, c.req, nil, ", statusPackage.Ident("New"), "(code, message))")
+	m.g.P("return c.client.remoteMockClient.AddStub(", methodFullName, ", c.ctx, c.req, nil, ", statusPackage.Ident("New"), "(code, message))")
 	m.g.P("}")
 
 	m.g.P("")
@@ -347,8 +347,7 @@ func (m mockServicesGenerator) genRemoteCalls(service *protogen.Service, method 
 func (m mockServicesGenerator) genRemoteMockClientClear(service *protogen.Service) {
 	remoteMockClientName := m.getRemoteMockClientName(service)
 	m.g.P("func (c ", remoteMockClientName, ") Clear() error {")
-	// remote.DeleteAllStubs(c.host, c.port)
-	m.g.P("return c.remoteMockClient.DeleteAllStubs(c.host, c.port)")
+	m.g.P("return c.remoteMockClient.DeleteAllStubs()")
 	m.g.P("}")
 	m.g.P("")
 }
@@ -359,7 +358,7 @@ func (m mockServicesGenerator) genRemoteMockClient(service *protogen.Service) {
 	m.g.P("host string,")
 	m.g.P("port int,")
 	m.g.P(") " + remoteMockClientName + "{")
-	m.g.P("client := ", remotePackage.Ident("New"), "()")
+	m.g.P("client := ", remotePackage.Ident("New"), "(host, port)")
 	m.g.P("return " + remoteMockClientName + "{")
 	m.g.P("host: host,")
 	m.g.P("port: port,")
