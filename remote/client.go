@@ -17,8 +17,6 @@ import (
 
 type MockServerClient interface {
 	AddStub(
-		host string,
-		port int,
 		fullMethod string,
 		ctx context.Context,
 		req proto.Message,
@@ -26,23 +24,27 @@ type MockServerClient interface {
 		error *status.Status,
 	) error
 
-	DeleteAllStubs(
-		host string,
-		port int,
-	) error
+	DeleteAllStubs() error
 }
 
-func New() MockServerClient {
-	return &client{&http.Client{}}
+func New(
+	host string,
+	port int,
+) MockServerClient {
+	return &client{
+		HttpClient: &http.Client{},
+		host:       host,
+		port:       port,
+	}
 }
 
 type client struct {
 	HttpClient *http.Client
+	host       string
+	port       int
 }
 
 func (c *client) AddStub(
-	host string,
-	port int,
 	fullMethod string,
 	ctx context.Context,
 	req proto.Message,
@@ -69,7 +71,7 @@ func (c *client) AddStub(
 	}
 	b, err := json.Marshal(s)
 	writer := bytes.NewBuffer(b)
-	r, e := c.HttpClient.Post(fmt.Sprintf("http://%s:%d/stubs", host, port), "application/json", writer)
+	r, e := c.HttpClient.Post(fmt.Sprintf("http://%s:%d/stubs", c.host, c.port), "application/json", writer)
 	if e != nil {
 		return e
 	}
@@ -80,11 +82,8 @@ func (c *client) AddStub(
 	return nil
 }
 
-func (c *client) DeleteAllStubs(
-	host string,
-	port int,
-) error {
-	deleteRequest, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://%s:%d/stubs", host, port), bytes.NewReader([]byte{}))
+func (c *client) DeleteAllStubs() error {
+	deleteRequest, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://%s:%d/stubs", c.host, c.port), bytes.NewReader([]byte{}))
 	if err != nil {
 		return err
 	}
