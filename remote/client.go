@@ -15,9 +15,32 @@ import (
 	"net/http"
 )
 
-var httpClient = http.DefaultClient
+type MockServerClient interface {
+	AddStub(
+		host string,
+		port int,
+		fullMethod string,
+		ctx context.Context,
+		req proto.Message,
+		resp proto.Message,
+		error *status.Status,
+	) error
 
-func AddStub(
+	DeleteAllStubs(
+		host string,
+		port int,
+	) error
+}
+
+func New() MockServerClient {
+	return &client{&http.Client{}}
+}
+
+type client struct {
+	HttpClient *http.Client
+}
+
+func (c *client) AddStub(
 	host string,
 	port int,
 	fullMethod string,
@@ -46,7 +69,7 @@ func AddStub(
 	}
 	b, err := json.Marshal(s)
 	writer := bytes.NewBuffer(b)
-	r, e := httpClient.Post(fmt.Sprintf("http://%s:%d/stubs", host, port), "application/json", writer)
+	r, e := c.HttpClient.Post(fmt.Sprintf("http://%s:%d/stubs", host, port), "application/json", writer)
 	if e != nil {
 		return e
 	}
@@ -57,7 +80,7 @@ func AddStub(
 	return nil
 }
 
-func DeleteAllStubs(
+func (c *client) DeleteAllStubs(
 	host string,
 	port int,
 ) error {
@@ -65,7 +88,7 @@ func DeleteAllStubs(
 	if err != nil {
 		return err
 	}
-	resp, err := httpClient.Do(deleteRequest)
+	resp, err := c.HttpClient.Do(deleteRequest)
 	if err != nil {
 		return err
 	}
