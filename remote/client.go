@@ -56,7 +56,8 @@ func (c *client) AddStub(
 	resp proto.Message,
 	error *status.Status,
 ) error {
-	reqJson := toJsonString(req)
+	// reqJson := toJsonString(req)
+	reqJson := stub.JsonString("")
 	respJson := toJsonString(resp)
 	errResp := toErrorResponse(error)
 	s := &stub.Stub{
@@ -80,7 +81,7 @@ func (c *client) AddStub(
 	if e != nil {
 		return e
 	}
-	b, err = ioutil.ReadAll(r.Body)
+	_, err = ioutil.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}
