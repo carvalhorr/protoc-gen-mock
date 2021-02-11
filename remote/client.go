@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -56,8 +55,7 @@ func (c *client) AddStub(
 	resp proto.Message,
 	error *status.Status,
 ) error {
-	// reqJson := toJsonString(req)
-	reqJson := stub.JsonString("")
+	reqJson := toJsonString(req)
 	respJson := toJsonString(resp)
 	errResp := toErrorResponse(error)
 	s := &stub.Stub{
@@ -76,15 +74,15 @@ func (c *client) AddStub(
 		Forward: nil,
 	}
 	b, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
 	writer := bytes.NewBuffer(b)
 	r, e := c.HttpClient.Post(fmt.Sprintf("http://%s:%d/stubs", c.host, c.port), "application/json", writer)
 	if e != nil {
 		return e
 	}
-	_, err = ioutil.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
+	defer r.Body.Close()
 	return nil
 }
 
