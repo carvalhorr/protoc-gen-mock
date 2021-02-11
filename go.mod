@@ -3,7 +3,7 @@ module github.com/carvalhorr/protoc-gen-mock
 go 1.13
 
 require (
-	github.com/carvalhorr/goutils v0.0.0-20210206210602-7fe9152238b1
+	github.com/carvalhorr/goutils v0.0.1
 	github.com/golang/protobuf v1.4.3
 	github.com/gorilla/mux v1.8.0
 	github.com/sirupsen/logrus v1.7.0
