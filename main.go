@@ -11,6 +11,8 @@ import (
 
 const (
 	fmtPackage         = protogen.GoImportPath("fmt")
+	osPackage          = protogen.GoImportPath("os")
+	strConvPackage     = protogen.GoImportPath("strconv")
 	contextPackage     = protogen.GoImportPath("context")
 	protoPackage       = protogen.GoImportPath("github.com/golang/protobuf/proto")
 	grpcPackage        = protogen.GoImportPath("google.golang.org/grpc")
@@ -19,6 +21,7 @@ const (
 	remotePackage      = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/remote")
 	codesPackage       = protogen.GoImportPath("google.golang.org/grpc/codes")
 	statusPackage      = protogen.GoImportPath("google.golang.org/grpc/status")
+	bootstrapPackage   = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/bootstrap")
 	deprecationComment = "// Deprecated: Do not use."
 )
 
@@ -45,15 +48,82 @@ func main() {
 		for _, f := range gen.Files {
 			GenerateFile(gen, f)
 		}
+		GenerateMain(gen)
+		GenerateDockerfile(gen)
 		return nil
 	})
 }
 
-// GenerateFile generates a _grpc.pb.go file containing gRPC service definitions.
+func GenerateMain(gen *protogen.Plugin) {
+	if len(gen.Files) == 0 {
+		return
+	}
+	packageName := gen.Files[0].GoPackageName
+	file := gen.NewGeneratedFile("main.go", "")
+	file.P("package ", packageName)
+	file.P("")
+	file.P("func main() {")
+	file.P("restPort, found := ", osPackage.Ident("LookupEnv"), "(\"REST_PORT\")")
+	file.P("if !found {")
+	file.P("restPort = \"1068\" // default REST port")
+	file.P("}")
+	file.P("restP, err := ", strConvPackage.Ident("ParseUint"), "(restPort, 10, 64)")
+	file.P("if err != nil {")
+	file.P("restP = 1068")
+	file.P("}")
+	file.P("grpcPort, found := ", osPackage.Ident("LookupEnv"), "(\"GRPC_PORT\")")
+	file.P("if !found {")
+	file.P("grpcPort = \"10010\" // default GRPC port")
+	file.P("}")
+	file.P("grpcP, err := ", strConvPackage.Ident("ParseUint"), "(grpcPort, 10, 64)")
+	file.P("if err != nil {")
+	file.P("grpcP = 10010")
+	file.P("}")
+	file.P("Start(uint(restP), uint(grpcP), \"./tmp\")")
+	file.P("}")
+	file.P("")
+	file.P("func Start(restPort, grpcPort uint, tmpPath string) {")
+	file.P(bootstrapPackage.Ident("BootstrapServers"), "(tmpPath, restPort, grpcPort, MockServicesRegistrationCallback)")
+	file.P("}")
+	file.P("var MockServicesRegistrationCallback = func(stubsMatcher ", stubPackage.Ident("StubsMatcher"), ") ", grpcHandlerPackage.Ident("MockService"), " {")
+	file.P("return ", grpcHandlerPackage.Ident("NewCompositeMockService"), "([]", grpcHandlerPackage.Ident("MockService"), "{")
+	for _, f := range gen.Files {
+		for _, s := range f.Services {
+			file.P("New", s.GoName, "MockService(stubsMatcher),")
+		}
+	}
+	file.P("})")
+	file.P("}")
+
+}
+
+func GenerateDockerfile(gen *protogen.Plugin) {
+	if len(gen.Files) == 0 {
+		return
+	}
+	packageName := gen.Files[0].GoPackageName
+	file := gen.NewGeneratedFile("Dockerfile", "")
+	file.P("FROM golang:1.15.8-alpine3.13 as builder")
+	file.P("RUN apk add build-base")
+	file.P("WORKDIR /mock")
+	file.P("COPY *.go ./")
+	file.P("RUN sed -i 's/package ", packageName, "/package main/' *.go")
+	file.P("RUN go mod init ", packageName)
+	file.P("RUN go build -o app")
+	file.P("FROM golang:1.15.8-alpine3.13")
+	file.P("COPY  --from=builder /mock/app .")
+	file.P("ENTRYPOINT ./app")
+}
+
+// GenerateFile generates a .mock.pb.go file containing gRPC service definitions.
 func GenerateFile(gen *protogen.Plugin, file *protogen.File) *protogen.GeneratedFile {
+	if !file.Generate {
+		return nil
+	}
 	if len(file.Services) == 0 {
 		return nil
 	}
+	// fmt.Println("FILENAME ", file.GeneratedFilenamePrefix)
 	filename := file.GeneratedFilenamePrefix + ".mock.pb.go"
 	g := gen.NewGeneratedFile(filename, file.GoImportPath)
 	mockGenerator := mockServicesGenerator{
@@ -317,7 +387,9 @@ func (m mockServicesGenerator) genRemoteClient(service *protogen.Service) {
 
 func (m mockServicesGenerator) genRemoteCalls(service *protogen.Service, method *protogen.Method) {
 	remoteMockClientName := m.getRemoteMockClientName(service)
-	callName := method.GoName + "Call"
+	// Added the service name to the generated call name to avoid collision in the resulting generated code
+	// in case of multiple services with RPCs with the same name
+	callName := service.GoName + "_" + method.GoName + "Call"
 	methodFullName := m.getFullMethodName(service, method)
 	m.g.P("func (c ", remoteMockClientName, ") On", method.GoName, "(ctx ", contextPackage.Ident("Context"), ", request *", method.Input.GoIdent, ")", callName, "{")
 	m.g.P("return ", callName, "{")
