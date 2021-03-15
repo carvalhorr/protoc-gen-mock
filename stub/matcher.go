@@ -29,6 +29,7 @@ func (m *stubsMatcher) Match(ctx context.Context, fullMethod, requestJson string
 	if stubsForMethod == nil {
 		return nil
 	}
+	var firstPartialMatch *Stub
 	for _, stub := range stubsForMethod {
 		switch stub.Request.Match {
 		case "exact":
@@ -36,12 +37,15 @@ func (m *stubsMatcher) Match(ctx context.Context, fullMethod, requestJson string
 				return stub
 			}
 		case "partial":
+			if firstPartialMatch != nil {
+				continue // if a partial match is already found continue (so it takes the first match)
+			}
 			if stub.Request.Content.Matches(JsonString(requestJson)) && matchMetadata(ctx, stub) {
-				return stub
+				firstPartialMatch = stub // Use the first partial match
 			}
 		}
 	}
-	return nil
+	return firstPartialMatch
 }
 
 func matchMetadata(ctx context.Context, stub *Stub) bool {
