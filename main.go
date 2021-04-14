@@ -16,12 +16,12 @@ const (
 	contextPackage     = protogen.GoImportPath("context")
 	protoPackage       = protogen.GoImportPath("github.com/golang/protobuf/proto")
 	grpcPackage        = protogen.GoImportPath("google.golang.org/grpc")
-	grpcHandlerPackage = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/grpchandler")
-	stubPackage        = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/stub")
-	remotePackage      = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/remote")
+	grpcHandlerPackage = protogen.GoImportPath("github.com/thebaasco/protoc-gen-mock/grpchandler")
+	stubPackage        = protogen.GoImportPath("github.com/thebaasco/protoc-gen-mock/stub")
+	remotePackage      = protogen.GoImportPath("github.com/thebaasco/protoc-gen-mock/remote")
 	codesPackage       = protogen.GoImportPath("google.golang.org/grpc/codes")
 	statusPackage      = protogen.GoImportPath("google.golang.org/grpc/status")
-	bootstrapPackage   = protogen.GoImportPath("github.com/carvalhorr/protoc-gen-mock/bootstrap")
+	bootstrapPackage   = protogen.GoImportPath("github.com/thebaasco/protoc-gen-mock/bootstrap")
 	deprecationComment = "// Deprecated: Do not use."
 )
 

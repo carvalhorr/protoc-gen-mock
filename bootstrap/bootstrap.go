@@ -1,8 +1,8 @@
 package bootstrap
 
 import (
-	"github.com/carvalhorr/protoc-gen-mock/grpchandler"
-	"github.com/carvalhorr/protoc-gen-mock/stub"
+	"github.com/thebaasco/protoc-gen-mock/grpchandler"
+	"github.com/thebaasco/protoc-gen-mock/stub"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	httputils "github.com/carvalhorr/goutils/http"
-	"github.com/carvalhorr/protoc-gen-mock/stub"
+	"github.com/thebaasco/protoc-gen-mock/stub"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"

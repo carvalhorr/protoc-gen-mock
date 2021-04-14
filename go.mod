@@ -1,6 +1,6 @@
-module github.com/carvalhorr/protoc-gen-mock
+module github.com/thebaasco/protoc-gen-mock
 
-go 1.13
+go 1.15
 
 require (
 	github.com/carvalhorr/goutils v0.0.1
@@ -10,5 +10,5 @@ require (
 	github.com/stretchr/stew v0.0.0-20130812190256-80ef0842b48b
 	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.35.0
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.26.0
 )

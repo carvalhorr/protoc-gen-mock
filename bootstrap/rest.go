@@ -2,9 +2,9 @@ package bootstrap
 
 import (
 	"fmt"
-	"github.com/carvalhorr/protoc-gen-mock/grpchandler"
-	"github.com/carvalhorr/protoc-gen-mock/restcontrollers"
-	"github.com/carvalhorr/protoc-gen-mock/stub"
+	"github.com/thebaasco/protoc-gen-mock/grpchandler"
+	"github.com/thebaasco/protoc-gen-mock/restcontrollers"
+	"github.com/thebaasco/protoc-gen-mock/stub"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"net/http"
