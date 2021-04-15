@@ -2,7 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
-	"github.com/carvalhorr/protoc-gen-mock/grpchandler"
+	"github.com/thebaasco/protoc-gen-mock/grpchandler"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"

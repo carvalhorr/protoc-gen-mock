@@ -76,28 +76,41 @@ func isJsonValid(t protoreflect.MessageDescriptor, json map[string]interface{}, 
 		if fieldValue == nil {
 			continue
 		}
-		switch {
-		case field.Kind() == protoreflect.StringKind:
-			switch fieldValue.(type) {
-			case string:
-			default:
-				errorMessages = append(errorMessages, fmt.Sprintf("Field '%s.%s' is expected to be a string.", baseName, jsonName))
-			}
-		case field.Kind() == protoreflect.MessageKind:
-			_, subTypeErrorMessages := isJsonValid(field.Message(), fieldValue.(map[string]interface{}), baseName+"."+jsonName)
-			errorMessages = append(errorMessages, subTypeErrorMessages...)
-		case field.Kind() == protoreflect.EnumKind:
-			found := false
-			for i := 0; i < field.Enum().Values().Len(); i++ {
-				value := field.Enum().Values().Get(i)
-				if value == fieldValue {
-					found = true
-					break // TODO make sure break is leaving the for loop
+
+		//To make code below simpler and more systematic, consider even a non-repeated field as a slice, so that when a field is repeated, we can run same logic
+		fieldValues := []interface{}{
+			fieldValue,
+		}
+
+		//If field is repeated, expand list of items for validation
+		if field.Cardinality() == protoreflect.Repeated {
+			fieldValues = fieldValue.([]interface{})
+		}
+
+		for _, element := range fieldValues {
+			switch {
+			case field.Kind() == protoreflect.StringKind:
+				switch element.(type) {
+				case string:
+				default:
+					errorMessages = append(errorMessages, fmt.Sprintf("Field '%s.%s' is expected to be a string.", baseName, jsonName))
 				}
-			}
-			if !found {
-				// TODO implement the correct names
-				errorMessages = append(errorMessages, fmt.Sprintf("Value '%s' is not valid for field '%s.%s'. Possible values are '%s'.", fieldValue, baseName, jsonName, field.Enum().ReservedNames()))
+			case field.Kind() == protoreflect.MessageKind:
+				_, subTypeErrorMessages := isJsonValid(field.Message(), element.(map[string]interface{}), baseName+"."+jsonName)
+				errorMessages = append(errorMessages, subTypeErrorMessages...)
+			case field.Kind() == protoreflect.EnumKind:
+				found := false
+				for i := 0; i < field.Enum().Values().Len(); i++ {
+					value := field.Enum().Values().Get(i)
+					if value == element {
+						found = true
+						break // TODO make sure break is leaving the for loop
+					}
+				}
+				if !found {
+					// TODO implement the correct names
+					errorMessages = append(errorMessages, fmt.Sprintf("Value '%s' is not valid for field '%s.%s'. Possible values are '%s'.", element, baseName, jsonName, field.Enum().ReservedNames()))
+				}
 			}
 		}
 	}

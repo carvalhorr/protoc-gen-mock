@@ -1,7 +1,7 @@
 package restcontrollers
 
 import (
-	"github.com/carvalhorr/protoc-gen-mock/stub"
+	"github.com/thebaasco/protoc-gen-mock/stub"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
