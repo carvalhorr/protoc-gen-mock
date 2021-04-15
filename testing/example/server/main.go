@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	greetermock "github.com/carvalhorr/protoc-gen-mock/greeter-service"
+	greetermock "github.com/thebaasco/protoc-gen-mock/greeter-service"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

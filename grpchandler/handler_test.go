@@ -1,7 +1,7 @@
 package grpchandler
 
 import (
-	"github.com/carvalhorr/protoc-gen-mock/stub"
+	"github.com/thebaasco/protoc-gen-mock/stub"
 	"github.com/stretchr/testify/mock"
 )
 
